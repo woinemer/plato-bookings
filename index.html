@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+<script>if(window.self!==window.top){document.documentElement.classList.add('iframe-mode');}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>°Plato – Das Gewölbe · Eventlocation Weinheim</title>
@@ -870,6 +871,8 @@ footer{
   .tweaks-panel{right:12px;bottom:12px;width:calc(100% - 24px);max-width:300px;}
 }
 
+/* iframe: let the hero shrink to its content instead of locking to full viewport height */
+html.iframe-mode .hero { min-height: 0; }
 </style>
 </head>
 <body>
