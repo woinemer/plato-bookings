@@ -2830,6 +2830,7 @@ function goStep(step) {
     if (index < step) el.classList.add('done');
   });
   if (isInIframe()) { notifyParentScrollTop(); } else { document.getElementById('booking').scrollIntoView({ behavior: 'smooth' }); }
+  notifyHeight();
 }
 
 function toggleNewsletter() {
@@ -2850,7 +2851,8 @@ function showSuccessPanel(bookingId) {
     document.getElementById('successId').style.display = 'inline-block';
     document.getElementById('successIdVal').textContent = bookingId;
   }
-  if (isInIframe()) { notifyParentScrollTop(); notifyParentBooking(bookingId); } else { window.scrollTo({ top: document.getElementById('booking').offsetTop, behavior: 'smooth' }); }
+  if (isInIframe()) { notifyParentScrollTop(); } else { window.scrollTo({ top: document.getElementById('booking').offsetTop, behavior: 'smooth' }); }
+  notifyHeight();
 }
 
 function setLoading(on) {
@@ -2991,6 +2993,7 @@ async function loadRemoteData() {
   renderServiceList();
   renderRuleMessages();
   updateSummary();
+  notifyHeight();
 }
 
 function bindStaticEvents() {
@@ -3037,73 +3040,43 @@ loadRemoteData();
 
 // --- IFRAME EMBED SUPPORT ---
 
-if (window.self !== window.top) {
-  document.body.classList.add('iframe-mode');
-}
-
 function isInIframe() {
   try { return window.self !== window.top; } catch (e) { return true; }
 }
 
-function notifyParentResize() {
-  if (!isInIframe()) return;
-  window.parent.postMessage({ type: 'plato-resize', height: document.body.scrollHeight }, '*');
+function notifyHeight() {
+  try {
+    parent.postMessage({ type: 'platoHeight', height: document.documentElement.scrollHeight }, '*');
+  } catch (e) {}
 }
 
 function notifyParentScrollTop() {
-  if (!isInIframe()) return;
-  window.parent.postMessage({ type: 'plato-scroll-top' }, '*');
+  try { parent.postMessage({ type: 'platoScrollTop' }, '*'); } catch (e) {}
 }
 
-function notifyParentBooking(bookingId) {
-  if (!isInIframe()) return;
-  window.parent.postMessage({ type: 'plato-booking-success', bookingId: bookingId }, '*');
-}
-
-if (isInIframe() && typeof ResizeObserver !== 'undefined') {
-  var _lastReportedHeight = 0;
-  notifyParentResize = (function(original) {
-    return function() {
-      if (!isInIframe()) return;
-      var h = document.documentElement.scrollHeight;
-      if (h === _lastReportedHeight) return;
-      _lastReportedHeight = h;
-      window.parent.postMessage({ type: 'plato-resize', height: h }, '*');
-    };
-  })(notifyParentResize);
-  new ResizeObserver(notifyParentResize).observe(document.documentElement);
-}
+window.addEventListener('load', notifyHeight);
+window.addEventListener('resize', notifyHeight);
 
 /*
-  ┌─────────────────────────────────────────────────────────────────┐
-  │  IFRAME EMBED SNIPPET — paste this on your website              │
-  └─────────────────────────────────────────────────────────────────┘
+  IFRAME EMBED SNIPPET — paste this on your website:
 
   <iframe
-    id="plato-booking-iframe"
-    src="https://YOUR_USERNAME.github.io/plato-bookings/"
-    style="width:100%; border:none; display:block; min-height:700px; transition:height 0.3s ease;"
-    scrolling="no"
-    title="°Plato – Eventlocation buchen">
+    id="platoFrame"
+    src="https://maxwoinemer.github.io/plato-bookings/"
+    style="width:100%; border:0; display:block; min-height:300px;"
+    loading="lazy">
   </iframe>
   <script>
-  (function() {
-    var iframe = document.getElementById('plato-booking-iframe');
-    window.addEventListener('message', function(e) {
-      if (!e.data || typeof e.data !== 'object') return;
-      if (e.data.type === 'plato-resize') {
-        iframe.style.height = e.data.height + 'px';
-      }
-      if (e.data.type === 'plato-scroll-top') {
-        iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      if (e.data.type === 'plato-booking-success') {
-        // Optional: forward to analytics
-        // gtag('event', 'booking_complete', { booking_id: e.data.bookingId });
-        console.log('Plato booking submitted:', e.data.bookingId);
-      }
-    });
-  })();
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'platoHeight') {
+      var f = document.getElementById('platoFrame');
+      if (f) f.style.height = e.data.height + 'px';
+    }
+    if (e.data && e.data.type === 'platoScrollTop') {
+      var f = document.getElementById('platoFrame');
+      if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
   <\/script>
 */
 </script>
