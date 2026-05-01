@@ -869,6 +869,20 @@ footer{
   .intro-facts{grid-template-columns:1fr;}
   .tweaks-panel{right:12px;bottom:12px;width:calc(100% - 24px);max-width:300px;}
 }
+
+/* iframe embed mode — hide everything except the booking form */
+body.iframe-mode nav,
+body.iframe-mode .hero,
+body.iframe-mode .intro,
+body.iframe-mode .occasions-section,
+body.iframe-mode .gallery-section,
+body.iframe-mode .packages-section,
+body.iframe-mode footer {
+  display: none !important;
+}
+body.iframe-mode #booking {
+  padding-top: 0;
+}
 </style>
 </head>
 <body>
@@ -3012,6 +3026,10 @@ bindStaticEvents();
 loadRemoteData();
 
 // --- IFRAME EMBED SUPPORT ---
+
+if (window.self !== window.top) {
+  document.body.classList.add('iframe-mode');
+}
 
 function isInIframe() {
   try { return window.self !== window.top; } catch (e) { return true; }
