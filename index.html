@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+<script>if(window.self!==window.top){document.documentElement.classList.add('iframe-mode');}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>°Plato – Das Gewölbe · Eventlocation Weinheim</title>
@@ -871,16 +872,16 @@ footer{
 }
 
 /* iframe embed mode — hide everything except the booking form */
-body.iframe-mode nav,
-body.iframe-mode .hero,
-body.iframe-mode .intro,
-body.iframe-mode .occasions-section,
-body.iframe-mode .gallery-section,
-body.iframe-mode .packages-section,
-body.iframe-mode footer {
+html.iframe-mode nav,
+html.iframe-mode .hero,
+html.iframe-mode .intro,
+html.iframe-mode .occasions-section,
+html.iframe-mode .gallery-section,
+html.iframe-mode .packages-section,
+html.iframe-mode footer {
   display: none !important;
 }
-body.iframe-mode #booking {
+html.iframe-mode #booking {
   padding-top: 0;
 }
 </style>
