@@ -3033,7 +3033,17 @@ function notifyParentBooking(bookingId) {
 }
 
 if (isInIframe() && typeof ResizeObserver !== 'undefined') {
-  new ResizeObserver(notifyParentResize).observe(document.body);
+  var _lastReportedHeight = 0;
+  notifyParentResize = (function(original) {
+    return function() {
+      if (!isInIframe()) return;
+      var h = document.documentElement.scrollHeight;
+      if (h === _lastReportedHeight) return;
+      _lastReportedHeight = h;
+      window.parent.postMessage({ type: 'plato-resize', height: h }, '*');
+    };
+  })(notifyParentResize);
+  new ResizeObserver(notifyParentResize).observe(document.documentElement);
 }
 
 /*
@@ -3054,7 +3064,7 @@ if (isInIframe() && typeof ResizeObserver !== 'undefined') {
     window.addEventListener('message', function(e) {
       if (!e.data || typeof e.data !== 'object') return;
       if (e.data.type === 'plato-resize') {
-        iframe.style.height = (e.data.height + 32) + 'px';
+        iframe.style.height = e.data.height + 'px';
       }
       if (e.data.type === 'plato-scroll-top') {
         iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
