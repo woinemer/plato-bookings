@@ -878,11 +878,14 @@ html.iframe-mode .intro,
 html.iframe-mode .occasions-section,
 html.iframe-mode .gallery-section,
 html.iframe-mode .packages-section,
-html.iframe-mode footer {
+html.iframe-mode .cta-band,
+html.iframe-mode footer,
+html.iframe-mode .booking-header {
   display: none !important;
 }
 html.iframe-mode #booking {
   padding-top: 0;
+  background: var(--cream);
 }
 </style>
 </head>
@@ -1390,55 +1393,55 @@ var DEFAULT_PUBLIC_CONTENT = {
 var UI = {
   de: {
     locale: 'de-DE',
-    nav: ['Anlasse', 'Das Gewolbe', 'Pakete'],
+    nav: ['Anlässe', 'Das Gewölbe', 'Pakete'],
     bookCta: 'Termin anfragen',
     bookNow: 'Jetzt anfragen',
-    discover: 'Gewolbe entdecken',
-    introEyebrow: 'Willkommen im Gewolbe',
-    introLead: 'Steinmauern, warmes Licht und <em>Woinemer&nbsp;Biere</em> - der Rahmen fur den Abend, uber den noch lange geredet wird.',
-    introFactLabels: ['Gaste', 'Zum Loslegen', 'Mitten in Weinheim', 'Ruckmeldung'],
+    discover: 'Gewölbe entdecken',
+    introEyebrow: 'Willkommen im Gewölbe',
+    introLead: 'Steinmauern, warmes Licht und <em>Woinemer&nbsp;Biere</em> – der Rahmen für den Abend, über den noch lange geredet wird.',
+    introFactLabels: ['Gäste', 'Zum Loslegen', 'Mitten in Weinheim', 'Rückmeldung'],
     introPackagesValue: 'Pakete',
     introReplyValue: '24 <em>h</em>',
     occasionEyebrow: 'Was feiern wir?',
-    occasionTitle: 'Fur jeden Anlass<br>der <em>passende Rahmen.</em>',
-    occasionSub: 'Geburtstag, Hochzeit, Firmenevent - such dir einen Anlass aus, wir machen den Rest.',
+    occasionTitle: 'Für jeden Anlass<br>der <em>passende Rahmen.</em>',
+    occasionSub: 'Geburtstag, Hochzeit, Firmenevent – such dir einen Anlass aus, wir machen den Rest.',
     galleryEyebrow: 'Einblicke',
-    galleryTitle: 'Das <em>Gewolbe.</em>',
+    galleryTitle: 'Das <em>Gewölbe.</em>',
     bookingEyebrow: 'Buchung',
     bookingTitle: 'Termin <em>anfragen.</em>',
     bookingSub: 'In wenigen Schritten zu deiner personlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
     steps: ['Datum', 'Details', 'Leistungen', 'Kontakt'],
     panelTitles: [
-      'Wann mochtest du <em>feiern?</em>',
+      'Wann möchtest du <em>feiern?</em>',
       'Erzahl uns <em>mehr.</em>',
       'Was darfs <em>sein?</em>',
       'Deine <em>Kontaktdaten.</em>'
     ],
     panelSubs: [
-      'Wahle einen verfugbaren Termin und Uhrzeit.',
-      'Fur wen und was wird gefeiert?',
-      'Wahle ein Paket als Startpunkt oder stelle alles individuell zusammen.',
-      'Wir melden uns in Kurze bei dir - mit einem personlichen Angebot.'
+      'Wähle einen verfügbaren Termin und Uhrzeit.',
+      'Für wen und was wird gefeiert?',
+      'Wähle ein Paket als Startpunkt oder stelle alles individuell zusammen.',
+      'Wir melden uns in Kürze bei dir – mit einem persönlichen Angebot.'
     ],
     dateLabel: 'Datum',
     timeSectionLabel: 'Uhrzeit & Dauer',
-    available: 'Verfugbar',
+    available: 'Verfügbar',
     booked: 'Belegt',
     startLabel: 'Startzeit',
     durationLabel: 'Dauer',
     timeMeta: ['Start', 'Ende', 'Dauer', 'Nachtstd.'],
     next: 'Weiter',
-    back: 'Zuruck',
-    guestsLabel: 'Anzahl Gaste',
-    guestsWord: 'Gaste',
+    back: 'Zurück',
+    guestsLabel: 'Anzahl Gäste',
+    guestsWord: 'Gäste',
     occasionLabel: 'Anlass',
-    occasionCardLabels: ['Geburtstag', 'Firmenfeier', 'Hochzeit', 'Jubilaum', 'Vereinsfeier', 'Sonstiges'],
-    occasionNotePlaceholder: 'Mochtest du uns noch etwas zum Anlass mitteilen? (optional)',
+    occasionCardLabels: ['Geburtstag', 'Firmenfeier', 'Hochzeit', 'Jubiläum', 'Vereinsfeier', 'Sonstiges'],
+    occasionNotePlaceholder: 'Möchtest du uns noch etwas zum Anlass mitteilen? (optional)',
     packagesLabel: 'Empfohlene Pakete',
-    packagesForOccasion: 'Fur deinen Anlass',
+    packagesForOccasion: 'Für deinen Anlass',
     packagesTitle: 'Unsere Empfehlungen',
     packagesAdjust: 'Du kannst die Auswahl unten jederzeit anpassen.',
-    packagePreviewNote: 'Die Paketvorschlage rechnen mit deiner aktuellen Gastezahl. Die finale Summe wird serverseitig gepruft.',
+    packagePreviewNote: 'Die Paketvorschläge rechnen mit deiner aktuellen Gästezahl. Die finale Summe wird serverseitig geprüft.',
     modulesLabel: 'Module',
     contactLabels: ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Wie bist du auf uns aufmerksam geworden?', 'Nachricht (optional)'],
     placeholders: {
@@ -1448,51 +1451,51 @@ var UI = {
       phone: '+49 170 1234567',
       message: 'Gibt es noch etwas, das wir wissen sollten?'
     },
-    newsletterHtml: '<strong>Newsletter</strong> - ich mochte uber kommende Events im °Plato informiert werden.',
-    sourcePlaceholder: '- Bitte wahlen -',
+    newsletterHtml: '<strong>Newsletter</strong> – ich möchte über kommende Events im °Plato informiert werden.',
+    sourcePlaceholder: '– Bitte wählen –',
     sources: ['Instagram', 'Facebook', 'Google', 'Empfehlung', 'Woinemer Restaurant', 'Flyer / Plakat', 'Sonstiges'],
     submit: 'Anfrage absenden',
     waitlistTitle: 'Warteliste',
     waitlistText: 'Dieses Datum ist bereits belegt. Wenn du magst, nehmen wir deine Anfrage als Wartelisten-Anfrage auf.',
-    waitlistClear: 'Anderes Datum wahlen',
-    availabilityWindow: 'Buchungen ab {lead} Tagen Vorlauf. Moglich von {start} bis {end} Uhr, {minDur}-{maxDur} Stunden.',
-    availabilityWeekdays: 'Nicht verfugbar an: {days}.',
-    serviceRulesDefault: 'Leistungen mit Abhangigkeiten erganzen wir automatisch. Unvertragliche Kombinationen passen wir direkt an.',
-    ruleAdded: '{required} wurde erganzt, weil {service} davon abhangt.',
+    waitlistClear: 'Anderes Datum wählen',
+    availabilityWindow: 'Buchungen ab {lead} Tagen Vorlauf. Möglich von {start} bis {end} Uhr, {minDur}-{maxDur} Stunden.',
+    availabilityWeekdays: 'Nicht verfügbar an: {days}.',
+    serviceRulesDefault: 'Leistungen mit Abhängigkeiten ergänzen wir automatisch. Unverträgliche Kombinationen passen wir direkt an.',
+    ruleAdded: '{required} wurde ergänzt, weil {service} davon abhängt.',
     ruleConflict: '{remove} wurde entfernt, damit die Auswahl mit {keep} zusammenpasst.',
-    ruleDependencyRemoved: '{service} wurde entfernt, weil {required} nicht mehr ausgewahlt ist.',
-    summaryTitle: 'Dein Abend im Gewolbe',
+    ruleDependencyRemoved: '{service} wurde entfernt, weil {required} nicht mehr ausgewählt ist.',
+    summaryTitle: 'Dein Abend im Gewölbe',
     waitlistSummary: 'Wartelisten-Anfrage',
     dateRow: 'Datum',
     timeRow: 'Zeit',
     summaryServices: 'Leistungen',
-    noServices: 'Noch keine Leistungen gewahlt.',
+    noServices: 'Noch keine Leistungen gewählt.',
     total: 'Gesamt',
     estimated: 'Ca.',
     perGuest: '/ Gast',
     plusNight: ' + Nachtzuschlag',
-    startPlaceholder: '- Startzeit wahlen -',
-    durationPlaceholder: '- Dauer wahlen -',
+    startPlaceholder: '– Startzeit wählen –',
+    durationPlaceholder: '– Dauer wählen –',
     noPackages: 'Keine Pakete hinterlegt.',
-    packageEstimate: 'Ca. {total} fur {guests} Gaste',
+    packageEstimate: 'Ca. {total} für {guests} Gäste',
     nightSurcharge: 'Nachtzuschlag',
     nextDay: '(+1)',
     errors: {
-      date: 'Bitte wahle ein Datum.',
-      time: 'Bitte wahle eine Startzeit.',
-      duration: 'Bitte wahle eine Dauer.',
-      guests: 'Bitte gib eine Gastezahl im gultigen Bereich ein.',
-      occasion: 'Bitte wahle einen Anlass.',
+      date: 'Bitte wähle ein Datum.',
+      time: 'Bitte wähle eine Startzeit.',
+      duration: 'Bitte wähle eine Dauer.',
+      guests: 'Bitte gib eine Gästezahl im gültigen Bereich ein.',
+      occasion: 'Bitte wähle einen Anlass.',
       fname: 'Bitte Vorname eingeben.',
       lname: 'Bitte Nachname eingeben.',
-      email: 'Bitte gultige E-Mail-Adresse eingeben.',
+      email: 'Bitte gültige E-Mail-Adresse eingeben.',
       phone: 'Bitte Telefonnummer eingeben.',
       connection: 'Verbindungsfehler: '
     },
-    successTitle: 'Danke fur deine <em>Anfrage.</em>',
-    successWaitlistTitle: 'Danke fur deine <em>Wartelisten-Anfrage.</em>',
-    successBody: 'Wir melden uns kurzfristig personlich bei dir.',
-    successWaitlistBody: 'Wir prufen den Termin und melden uns, sobald etwas frei wird.',
+    successTitle: 'Danke für deine <em>Anfrage.</em>',
+    successWaitlistTitle: 'Danke für deine <em>Wartelisten-Anfrage.</em>',
+    successBody: 'Wir melden uns kurzfristig persönlich bei dir.',
+    successWaitlistBody: 'Wir prüfen den Termin und melden uns, sobald etwas frei wird.',
     loading: 'Wird gesendet...',
     scroll: 'Scroll',
     weekdaysShort: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
@@ -2484,7 +2487,13 @@ function updateBudget(serviceId, value) {
   var selected = state.services[serviceId];
   if (!service || !selected) return;
   selected.price = clamp(parseInt(value, 10) || service.budgetMin, service.budgetMin, service.budgetMax);
-  renderServiceList();
+  // Update slider UI in-place — calling renderServiceList() destroys the slider mid-drag
+  var slider = document.querySelector('[data-budget-id="' + serviceId + '"]');
+  if (slider) {
+    slider.style.background = budgetTrackStyle(service, selected.price);
+    var valEl = slider.parentElement.querySelector('.budget-val');
+    if (valEl) valEl.textContent = selected.price + ' €';
+  }
   updateSummary();
 }
 
@@ -2942,15 +2951,15 @@ function submitBooking() {
 function seedDevData() {
   blockedDates = [];
   services = normalizeServices([
-    { id: 'catering', icon: '🍽️', name: 'Catering', desc: 'Buffet & Menu aus unserer Kuche', priceType: 'fix', pricePerGuest: 28, budgetMin: 15, budgetMax: 60, requires: [], excludes: [] },
-    { id: 'bar', icon: '🍺', name: 'Bar-Paket', desc: 'Getranke-Flatrate inkl. Woinemer-Biere', priceType: 'fix', pricePerGuest: 22, budgetMin: 10, budgetMax: 40, requires: [], excludes: [] },
+    { id: 'catering', icon: '🍽️', name: 'Catering', desc: 'Buffet & Menü aus unserer Küche', priceType: 'fix', pricePerGuest: 28, budgetMin: 15, budgetMax: 60, requires: [], excludes: [] },
+    { id: 'bar', icon: '🍺', name: 'Bar-Paket', desc: 'Getränke-Flatrate inkl. Woinemer-Biere', priceType: 'fix', pricePerGuest: 22, budgetMin: 10, budgetMax: 40, requires: [], excludes: [] },
     { id: 'deco', icon: '✨', name: 'Dekoration', desc: 'Tischdeko, Blumen & Beleuchtung', priceType: 'budget', pricePerGuest: 8, budgetMin: 5, budgetMax: 25, requires: [], excludes: [] },
     { id: 'music', icon: '🎵', name: 'Musik / DJ', desc: 'DJ & Soundanlage fur den Abend', priceType: 'fix', pricePerGuest: 12, budgetMin: 8, budgetMax: 30, requires: [], excludes: [] }
   ]);
   packages = normalizePackages([
     { id: 'pkg_firma', icon: '🏢', name: 'Firmenfeier', desc: 'Alles inklusive fur Betriebsausflug oder Weihnachtsfeier.', modules: ['catering', 'bar', 'deco'], occasions: ['Firmenfeier'], active: true, featured: true },
     { id: 'pkg_geburtstag', icon: '🎂', name: 'Geburtstag', desc: 'Das Rundum-sorglos-Paket fur deinen grossen Tag.', modules: ['catering', 'bar', 'music'], occasions: ['Geburtstag'], active: true, featured: true },
-    { id: 'pkg_hochzeit', icon: '💍', name: 'Hochzeit', desc: 'Vollstandig ausgestattet fur den schonsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true, featured: true }
+    { id: 'pkg_hochzeit', icon: '💍', name: 'Hochzeit', desc: 'Vollständig ausgestattet für den schönsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true, featured: true }
   ]);
   contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 }
