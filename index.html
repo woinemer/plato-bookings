@@ -515,6 +515,11 @@ section{padding:120px 56px;}
 .newsletter-pdf-link a{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:999px;background:rgba(186,159,93,.15);border:1px solid rgba(186,159,93,.4);color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s;}
 .newsletter-pdf-link a:hover{background:rgba(186,159,93,.25);}
 .pkg-popular-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--gold);color:#1a1814;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
+.service-loss-text{font-size:11px;color:rgba(186,159,93,.85);font-style:italic;margin-top:3px;line-height:1.4;}
+.upsell-prompt{margin-top:12px;padding:12px 16px;border-radius:var(--radius);background:rgba(186,159,93,.1);border:1px solid rgba(186,159,93,.3);font-size:12px;color:var(--stone);line-height:1.5;}
+.upsell-prompt[hidden]{display:none!important;}
+.upsell-prompt strong{color:var(--gold);}
+.upsell-prompt-cta{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.05em;cursor:pointer;text-decoration:underline;}
 .waitlist-title{
   font-size:11px;
   font-weight:700;
@@ -1155,6 +1160,7 @@ html.iframe-mode .hero { min-height: 0; }
             <div class="guests-meta"><strong>Gäste</strong><br><span id="guestHint">Min. 50 · Max. 120</span></div>
           </div>
           <div class="error-msg" id="err-guests">Bitte eine Zahl zwischen 50 und 120 eingeben.</div>
+          <div class="upsell-prompt" id="upsellPrompt" hidden></div>
         </div>
         <div class="field-block">
           <div class="section-label">Anlass</div>
@@ -1486,7 +1492,7 @@ var UI = {
     startPlaceholder: '– Startzeit wählen –',
     durationPlaceholder: '– Dauer wählen –',
     noPackages: 'Keine Pakete hinterlegt.',
-    packageEstimate: 'Ca. {total} für {guests} Gäste',
+    packageEstimate: 'Ca. {total}/Gast',
     nightSurcharge: 'Nachtzuschlag',
     nextDay: '(+1)',
     errors: {
@@ -1595,7 +1601,7 @@ var UI = {
     startPlaceholder: '- Choose start time -',
     durationPlaceholder: '- Choose duration -',
     noPackages: 'No packages available yet.',
-    packageEstimate: 'Approx. {total} for {guests} guests',
+    packageEstimate: 'Approx. {total}/guest',
     nightSurcharge: 'Night surcharge',
     nextDay: '(next day)',
     errors: {
@@ -1999,6 +2005,27 @@ function updateSuccessPanel(waitlist) {
   }
 }
 
+function updateUpsellPrompt() {
+  var el = document.getElementById('upsellPrompt');
+  if (!el) return;
+  if (getContentValue('upsellEnabled') !== 'true') { el.hidden = true; return; }
+  var threshold = parseInt(getContentValue('upsellThreshold'), 10) || 70;
+  var pkgId = getContentValue('upsellPackageId');
+  if (!pkgId || state.guests < threshold) { el.hidden = true; return; }
+  var pkg = findPackage(pkgId);
+  if (!pkg) { el.hidden = true; return; }
+  var tmpl = getContentValue(state.lang === 'en' ? 'upsellTextEn' : 'upsellTextDe');
+  var msg = tmpl.replace('{n}', threshold).replace('{package}', pkg.name);
+  el.innerHTML = msg + ' <span class="upsell-prompt-cta" onclick="scrollToPackages()">' +
+    (state.lang === 'en' ? 'View packages →' : 'Pakete ansehen →') + '</span>';
+  el.hidden = false;
+}
+
+function scrollToPackages() {
+  var el = document.getElementById('packagesBlock') || document.getElementById('pkgLpGrid');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function updateRuntimeSettings() {
   runtimeSettings.nightRate = parseInt(getContentValue('nightrate'), 10) || 150;
   runtimeSettings.minGuests = parseInt(getContentValue('minGuests'), 10) || 50;
@@ -2320,6 +2347,7 @@ function normalizeServices(list) {
       icon: String(service.icon || ''),
       name: String(service.name || ''),
       desc: String(service.desc || ''),
+      lossText: String(service.lossText || ''),
       priceType: String(service.priceType || 'fix'),
       pricePerGuest: Number(service.pricePerGuest || 0),
       budgetMin: Number(service.budgetMin || 0),
@@ -2471,6 +2499,9 @@ function packageEstimate(pkg) {
 function renderFeaturedPackages() {
   var ui = currentUi();
   var featured = getActivePackages().filter(function(pkg) { return pkg.featured; });
+  if (getContentValue('anchoringEnabled') === 'true') {
+    featured = featured.slice().sort(function(a, b) { return packageEstimate(b) - packageEstimate(a); });
+  }
   var el = document.getElementById('pkgLpGrid');
   if (!featured.length) {
     el.innerHTML = '<div style="color:rgba(217,208,188,.5);font-family:var(--serif);font-style:italic;font-size:14px;padding:20px 0;grid-column:1/-1;text-align:center">' + esc(ui.noPackages) + '</div>';
@@ -2481,8 +2512,9 @@ function renderFeaturedPackages() {
       var service = findService(moduleId);
       return service ? '<span class="pkg-lp-tag">' + esc(service.name) + '</span>' : '';
     }).join('');
+    var ppEstimate = state.guests > 0 ? Math.round(packageEstimate(pkg) / state.guests * 100) / 100 : 0;
     var estimate = replaceTokens(ui.packageEstimate, {
-      total: fmtEur(packageEstimate(pkg)),
+      total: fmtEur(ppEstimate),
       guests: state.guests
     });
     var popularId = getContentValue('popularPackageId');
@@ -2522,11 +2554,15 @@ function renderPackages() {
   }
   block.style.display = 'block';
   var html = '<div class="pkg-form-grid">';
+  if (getContentValue('anchoringEnabled') === 'true') {
+    filtered = filtered.slice().sort(function(a, b) { return packageEstimate(b) - packageEstimate(a); });
+  }
   var popularId = getContentValue('popularPackageId');
   filtered.forEach(function(pkg) {
     var selected = state.selectedPackage === pkg.id;
+    var ppEstimate = state.guests > 0 ? Math.round(packageEstimate(pkg) / state.guests * 100) / 100 : 0;
     var estimate = replaceTokens(ui.packageEstimate, {
-      total: fmtEur(packageEstimate(pkg)),
+      total: fmtEur(ppEstimate),
       guests: state.guests
     });
     var tags = (pkg.modules || []).map(function(moduleId) {
@@ -2680,7 +2716,9 @@ function renderServiceList() {
     return '<div class="service-card' + (selected ? ' selected' : '') + '">' +
       '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
       '<div class="service-icon">' + esc(service.icon) + '</div>' +
-      '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' + rulePills + '</div>' +
+      '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
+      (!selected && getContentValue('lossFramingEnabled') === 'true' && service.lossText ? '<div class="service-loss-text">' + esc(service.lossText) + '</div>' : '') +
+      rulePills + '</div>' +
       '<div class="service-price">' + priceLabel + '</div>' +
       '<div class="service-checkbox">' + (selected ? '✓' : '') + '</div>' +
       '</div>' +
@@ -2875,6 +2913,7 @@ function validateGuestCount() {
   renderPackages();
   renderServiceList();
   updateSummary();
+  updateUpsellPrompt();
   return true;
 }
 
@@ -2927,14 +2966,17 @@ function updateSummary() {
     container.innerHTML = badge + '<div class="no-services">' + esc(ui.noServices) + '</div>';
   } else {
     var rows = selected.map(function(service) {
-      var lineTotal = service.priceType === 'flat' ? service.price : service.price * state.guests;
+      var ppContrib = service.priceType === 'flat'
+        ? (state.guests > 0 ? Math.round(service.price / state.guests * 100) / 100 : 0)
+        : service.price;
       var label = service.priceType === 'flat'
-        ? service.price + ' €'
+        ? fmtEur(service.price) + ' flat'
         : service.price + ' €' + ui.perGuest;
-      return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(fmtEur(lineTotal)) + '</span></div>';
+      return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(fmtEur(ppContrib) + ui.perGuest) + '</span></div>';
     }).join('');
     if (state.nightSurcharge > 0) {
-      rows += '<div class="summary-service"><span class="sname">🌙 ' + esc(ui.nightSurcharge) + '<small>' + esc(state.nightHours + ' × ' + runtimeSettings.nightRate + ' €') + '</small></span><span class="sval">' + esc(fmtEur(state.nightSurcharge)) + '</span></div>';
+      var nightPp = state.guests > 0 ? Math.round(state.nightSurcharge / state.guests * 100) / 100 : 0;
+      rows += '<div class="summary-service"><span class="sname">🌙 ' + esc(ui.nightSurcharge) + '<small>' + esc(state.nightHours + ' × ' + runtimeSettings.nightRate + ' €') + '</small></span><span class="sval">' + esc(fmtEur(nightPp) + ui.perGuest) + '</span></div>';
     }
     container.innerHTML = badge + rows;
   }
