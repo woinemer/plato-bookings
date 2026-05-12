@@ -309,39 +309,6 @@ section{padding:120px 56px;}
 
 /* ── PACKAGES LANDING ──────────────────────────────────────── */
 .packages-section{background:var(--dark);padding:120px 56px;}
-.pkg-lp-head{max-width:1280px;margin:0 auto 72px;}
-.pkg-lp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1280px;margin:0 auto;}
-.pkg-lp-card{
-  background:linear-gradient(180deg,#322f29 0%,#262420 100%);
-  border:1px solid var(--border-dark);border-radius:var(--radius-lg);
-  padding:36px 30px;display:flex;flex-direction:column;
-  transition:border-color .3s,transform .3s;
-  position:relative;overflow:hidden;
-}
-.pkg-lp-card::before{
-  content:"";position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent 0%,var(--gold-line) 50%,transparent 100%);
-  opacity:0;transition:opacity .3s;
-}
-.pkg-lp-card:hover{border-color:var(--gold-line);transform:translateY(-4px);}
-.pkg-lp-card:hover::before{opacity:1;}
-.pkg-lp-icon{font-size:34px;margin-bottom:22px;}
-.pkg-lp-name{font-family:var(--serif);font-weight:400;font-size:28px;color:var(--beige);margin-bottom:10px;letter-spacing:-.01em;}
-.pkg-lp-desc{font-family:var(--serif);font-style:italic;font-size:14px;color:rgba(217,208,188,.62);line-height:1.65;flex:1;margin-bottom:24px;text-wrap:pretty;}
-.pkg-lp-modules{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:28px;}
-.pkg-lp-tag{
-  font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
-  background:rgba(186,159,93,.1);color:var(--gold);
-  padding:5px 10px;border-radius:4px;border:1px solid rgba(186,159,93,.18);
-}
-.pkg-lp-cta{
-  background:transparent;color:var(--beige);
-  border:1px solid rgba(217,208,188,.22);border-radius:999px;
-  padding:12px 24px;font-size:12px;font-weight:600;letter-spacing:.06em;
-  cursor:pointer;transition:all .25s;text-align:center;display:inline-flex;align-items:center;gap:8px;justify-content:center;
-}
-.pkg-lp-cta:hover{background:var(--gold);color:var(--night);border-color:var(--gold);}
-
 /* ── CTA BAND ──────────────────────────────────────────────── */
 .cta-band{
   background:var(--gold);padding:90px 40px;text-align:center;
@@ -515,7 +482,6 @@ section{padding:120px 56px;}
 .newsletter-pdf-link[hidden]{display:none!important;}
 .newsletter-pdf-link a{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:999px;background:rgba(186,159,93,.15);border:1px solid rgba(186,159,93,.4);color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s;}
 .newsletter-pdf-link a:hover{background:rgba(186,159,93,.25);}
-.pkg-popular-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--gold);color:#1a1814;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
 .service-loss-text{font-size:11px;color:rgba(186,159,93,.85);font-style:italic;margin-top:3px;line-height:1.4;}
 .upsell-prompt{margin-top:12px;padding:12px 16px;border-radius:var(--radius);background:rgba(186,159,93,.1);border:1px solid rgba(186,159,93,.3);font-size:12px;color:var(--stone);line-height:1.5;}
 .upsell-prompt[hidden]{display:none!important;}
@@ -878,7 +844,7 @@ footer{
   .nav-links{gap:14px;}
   .nav-tools{gap:10px;}
   .intro-grid{grid-template-columns:1fr;gap:40px;align-items:flex-start;}
-  .occasions-grid,.pkg-lp-grid{grid-template-columns:repeat(2,1fr);}
+  .occasions-grid{grid-template-columns:repeat(2,1fr);}
   .gallery-grid{grid-template-columns:1fr 1fr;grid-template-rows:auto;}
   .gallery-item:first-child{grid-row:span 1;}
   .booking-body{grid-template-columns:1fr;}
@@ -902,7 +868,7 @@ footer{
   .booking-header{padding:72px 22px 28px;}
   .stepper{padding:0 22px 24px;}
   .booking-body{padding:40px 22px 72px;}
-  .occasions-grid,.pkg-lp-grid{grid-template-columns:1fr;}
+  .occasions-grid{grid-template-columns:1fr;}
   .gallery-grid{grid-template-columns:1fr;}
   .cta-band{padding:72px 22px;}
   .occasion-grid{grid-template-columns:repeat(2,1fr);}
@@ -2125,7 +2091,6 @@ function normalizePackages(list) {
       modules: Array.isArray(pkg.modules) ? pkg.modules.map(String) : [],
       occasions: Array.isArray(pkg.occasions) ? pkg.occasions.map(String) : [],
       active: pkg.active !== false,
-      featured: pkg.featured === true
     };
   }).filter(function(pkg) { return pkg.id; });
 }
@@ -2252,48 +2217,6 @@ function packageEstimate(pkg) {
   return total;
 }
 
-function renderFeaturedPackages() {
-  var ui = currentUi();
-  var featured = getActivePackages().filter(function(pkg) { return pkg.featured; });
-  if (getContentValue('anchoringEnabled') === 'true') {
-    featured = featured.slice().sort(function(a, b) { return packageEstimate(b) - packageEstimate(a); });
-  }
-  var el = document.getElementById('pkgLpGrid');
-  if (!el) return;
-  if (!featured.length) {
-    el.innerHTML = '<div style="color:rgba(217,208,188,.5);font-family:var(--serif);font-style:italic;font-size:14px;padding:20px 0;grid-column:1/-1;text-align:center">' + esc(ui.noPackages) + '</div>';
-    return;
-  }
-  el.innerHTML = featured.map(function(pkg) {
-    var tags = (pkg.modules || []).map(function(moduleId) {
-      var service = findService(moduleId);
-      return service ? '<span class="pkg-lp-tag">' + esc(service.name) + '</span>' : '';
-    }).join('');
-    var ppEstimate = state.guests > 0 ? Math.round(packageEstimate(pkg) / state.guests * 100) / 100 : 0;
-    var estimate = replaceTokens(ui.packageEstimate, {
-      total: fmtEur(ppEstimate),
-      guests: state.guests
-    });
-    var popularId = getContentValue('popularPackageId');
-    var badge = (popularId && pkg.id === popularId)
-      ? '<div class="pkg-popular-badge">' + esc(getContentValue(state.lang === 'en' ? 'popularBadgeTextEn' : 'popularBadgeTextDe') || 'Beliebt') + '</div>'
-      : '';
-    return '<div class="pkg-lp-card">' +
-      badge +
-      '<div class="pkg-lp-icon">' + esc(pkg.icon) + '</div>' +
-      '<div class="pkg-lp-name">' + esc(pkg.name) + '</div>' +
-      '<div class="pkg-lp-desc">' + esc(pkg.desc) + '</div>' +
-      '<div class="pkg-lp-modules">' + tags + '</div>' +
-      '<div class="price-preview"><strong>' + esc(estimate) + '</strong></div>' +
-      '<button class="pkg-lp-cta" data-featured-pkg="' + esc(pkg.id) + '">' + withInlineArrow(ui.bookNow) + '</button>' +
-      '</div>';
-  }).join('');
-  document.querySelectorAll('[data-featured-pkg]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      selectAndBook(btn.getAttribute('data-featured-pkg'));
-    });
-  });
-}
 
 function effectiveSpaceId() {
   return (state.selectedSpaceId && !state.consultationRequested) ? state.selectedSpaceId : 'plato';
@@ -2418,7 +2341,6 @@ function toggleService(id) {
   }
   commitServiceSelection(selectedIds, false);
   renderPackages();
-  renderFeaturedPackages();
   renderServiceList();
   renderRuleMessages();
   updateSummary();
@@ -2659,7 +2581,6 @@ function onTimeChange() {
   } else {
     nightBox.style.display = 'none';
   }
-  renderFeaturedPackages();
   renderPackages();
   updateSummary();
 }
@@ -2907,9 +2828,9 @@ function seedDevData() {
     { id: 'music', icon: '🎵', name: 'Musik / DJ', desc: 'DJ & Soundanlage fur den Abend', priceType: 'fix', pricePerGuest: 12, budgetMin: 8, budgetMax: 30, requires: [], excludes: [] }
   ]);
   packages = normalizePackages([
-    { id: 'pkg_firma', icon: '🏢', name: 'Firmenfeier', desc: 'Alles inklusive fur Betriebsausflug oder Weihnachtsfeier.', modules: ['catering', 'bar', 'deco'], occasions: ['Firmenfeier'], active: true, featured: true },
-    { id: 'pkg_geburtstag', icon: '🎂', name: 'Geburtstag', desc: 'Das Rundum-sorglos-Paket fur deinen grossen Tag.', modules: ['catering', 'bar', 'music'], occasions: ['Geburtstag'], active: true, featured: true },
-    { id: 'pkg_hochzeit', icon: '💍', name: 'Hochzeit', desc: 'Vollständig ausgestattet für den schönsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true, featured: true }
+    { id: 'pkg_firma', icon: '🏢', name: 'Firmenfeier', desc: 'Alles inklusive fur Betriebsausflug oder Weihnachtsfeier.', modules: ['catering', 'bar', 'deco'], occasions: ['Firmenfeier'], active: true },
+    { id: 'pkg_geburtstag', icon: '🎂', name: 'Geburtstag', desc: 'Das Rundum-sorglos-Paket fur deinen grossen Tag.', modules: ['catering', 'bar', 'music'], occasions: ['Geburtstag'], active: true },
+    { id: 'pkg_hochzeit', icon: '💍', name: 'Hochzeit', desc: 'Vollständig ausgestattet für den schönsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true }
   ]);
   contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 }
