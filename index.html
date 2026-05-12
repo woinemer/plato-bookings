@@ -364,10 +364,6 @@ section{padding:120px 56px;}
 
 /* ── BOOKING ───────────────────────────────────────────────── */
 #booking{background:var(--cream);padding:0;}
-.booking-lang-switch{position:absolute;top:0;right:0;display:flex;gap:4px;z-index:2;}
-.booking-lang-switch .lang-btn{font-family:var(--sans);font-size:12px;letter-spacing:.1em;font-weight:600;padding:6px 10px;color:rgba(217,208,188,.6);background:transparent;border:1px solid rgba(217,208,188,.2);border-radius:6px;cursor:pointer;transition:all .15s ease;}
-.booking-lang-switch .lang-btn.active{color:var(--beige);border-color:var(--gold-line);background:rgba(186,159,93,.15);}
-.booking-lang-switch .lang-btn:hover{color:var(--beige);}
 .booking-header{
   background:var(--night);padding:100px 56px 36px;position:relative;overflow:hidden;
 }
@@ -394,7 +390,10 @@ section{padding:120px 56px;}
   color:rgba(217,208,188,.35);
   padding:10px 22px 10px 0;white-space:nowrap;flex-shrink:0;
   transition:color .25s;
+  cursor:default;
 }
+.step.active,.step.done{cursor:pointer;}
+.step.done:hover,.step.active:hover{color:var(--beige);}
 .step.active{color:var(--gold);}
 .step.done{color:rgba(217,208,188,.55);}
 .step-num{
@@ -508,10 +507,10 @@ section{padding:120px 56px;}
 .scarcity-msg[hidden]{display:none!important;}
 .progress-msg{padding:12px 16px;border-radius:var(--radius);background:rgba(186,159,93,.1);border-left:3px solid var(--gold);color:var(--stone);font-size:13px;font-weight:600;margin-bottom:18px;}
 .progress-msg[hidden]{display:none!important;}
-.social-proof-block{margin-bottom:18px;padding:14px 18px;border-radius:var(--radius);background:rgba(237,232,222,.5);border:1px solid var(--border);}
+.social-proof-block{margin-bottom:24px;padding:20px 22px;border-radius:var(--radius);background:#fff;border:1px solid var(--border);border-left:4px solid var(--gold);box-shadow:0 2px 8px rgba(54,46,38,.06);}
 .social-proof-block[hidden]{display:none!important;}
-.social-proof-quote{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--stone);line-height:1.6;margin-bottom:6px;}
-.social-proof-author{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(186,159,93,.8);}
+.social-proof-quote{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--dark);line-height:1.55;margin-bottom:10px;}
+.social-proof-author{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);}
 .newsletter-pdf-link{margin:16px 0 0;text-align:center;}
 .newsletter-pdf-link[hidden]{display:none!important;}
 .newsletter-pdf-link a{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:999px;background:rgba(186,159,93,.15);border:1px solid rgba(186,159,93,.4);color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s;}
@@ -911,6 +910,38 @@ footer{
   .intro-facts{grid-template-columns:1fr;}
   .tweaks-panel{right:12px;bottom:12px;width:calc(100% - 24px);max-width:300px;}
 }
+@media(max-width:640px){
+  /* iOS-Zoom verhindern: 16px Mindest auf Form-Inputs */
+  input,select,textarea{font-size:16px;}
+  select{padding-right:32px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;background-position:right 10px center;}
+  .booking-header h2{font-size:28px;}
+  .booking-header p{font-size:13px;}
+  .panel-title{font-size:26px;line-height:1.15;}
+  .panel-sub{font-size:14px;}
+  .btn-row{flex-direction:column;gap:10px;}
+  .btn-row .btn-primary,.btn-row .btn-secondary{width:100%;justify-content:center;}
+  .occasion-card{padding:14px 8px;}
+  .occasion-card .oc-label,.oc-label{font-size:12px;line-height:1.25;overflow-wrap:anywhere;}
+  .pkg-card,.service-card{padding:14px;}
+  .pkg-card-title,.service-name{font-size:15px;line-height:1.25;}
+  .smallgroup-grid{grid-template-columns:1fr;}
+  .smallgroup-card .sg-title,.sg-title{font-size:14px;}
+  .social-proof-block{padding:16px 18px;}
+  .social-proof-quote{font-size:15px;}
+  .summary{margin-top:24px;}
+}
+@media(max-width:480px){
+  .stepper{padding:0 16px 20px;gap:0;}
+  .step{padding:8px 12px 8px 0;gap:8px;}
+  .step span{display:none;}
+  .step-divider{width:18px;margin:0 4px;}
+  .booking-header{padding:56px 18px 22px;}
+  .booking-body{padding:32px 18px 60px;}
+  .panel-title{font-size:22px;}
+  .occasion-grid{gap:8px;}
+  .cal-cell,.day{min-width:36px;min-height:36px;}
+  .field-block{gap:14px;}
+}
 
 /* iframe: let the hero shrink to its content instead of locking to full viewport height */
 html.iframe-mode .hero { min-height: 0; }
@@ -927,10 +958,6 @@ html.iframe-mode .hero { min-height: 0; }
 <div id="booking">
   <div class="booking-header">
     <div class="booking-header-inner">
-      <div class="booking-lang-switch lang-switch">
-        <button class="lang-btn" data-lang="de" type="button">DE</button>
-        <button class="lang-btn" data-lang="en" type="button">EN</button>
-      </div>
       <div class="eyebrow on-dark">Buchung</div>
       <h2>Termin <em>anfragen.</em></h2>
       <p>In wenigen Schritten zu deiner persönlichen Anfrage – wir melden uns innerhalb von 24 Stunden.</p>
@@ -938,13 +965,13 @@ html.iframe-mode .hero { min-height: 0; }
   </div>
 
   <div class="stepper" id="stepperBlock">
-    <div class="step active" id="s1"><div class="step-num">1</div><span>Datum</span></div>
+    <div class="step active" id="s1" onclick="onStepClick(1)"><div class="step-num">1</div><span>Datum</span></div>
     <div class="step-divider"></div>
-    <div class="step" id="s2"><div class="step-num">2</div><span>Details</span></div>
+    <div class="step" id="s2" onclick="onStepClick(2)"><div class="step-num">2</div><span>Details</span></div>
     <div class="step-divider"></div>
-    <div class="step" id="s3"><div class="step-num">3</div><span>Leistungen</span></div>
+    <div class="step" id="s3" onclick="onStepClick(3)"><div class="step-num">3</div><span>Leistungen</span></div>
     <div class="step-divider"></div>
-    <div class="step" id="s4"><div class="step-num">4</div><span>Kontakt</span></div>
+    <div class="step" id="s4" onclick="onStepClick(4)"><div class="step-num">4</div><span>Kontakt</span></div>
   </div>
 
   <div class="booking-body" id="mainLayout">
@@ -1014,7 +1041,7 @@ html.iframe-mode .hero { min-height: 0; }
               <input class="guests-input" type="number" id="guestInput" min="50" max="120" value="50" oninput="onGuestInput(this.value)">
               <button class="guests-btn" type="button" onclick="stepGuests(5)" aria-label="Mehr">+</button>
             </div>
-            <div class="guests-meta"><strong>Gäste</strong><br><span id="guestHint">Min. 50 · Max. 120</span></div>
+            <div class="guests-meta"><strong>Gäste</strong></div>
           </div>
           <div class="error-msg" id="err-guests">Bitte eine gültige Gästezahl eingeben.</div>
           <div class="upsell-prompt" id="upsellPrompt" hidden></div>
@@ -1062,7 +1089,6 @@ html.iframe-mode .hero { min-height: 0; }
             <div id="packagesGrid"></div>
           </div>
           <div style="font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-top:8px;padding-left:4px">Du kannst die Auswahl unten jederzeit anpassen.</div>
-          <div class="package-preview-note" id="packagePreviewNote"></div>
         </div>
         <div class="field-block">
           <div class="section-label">Module</div>
@@ -1443,7 +1469,7 @@ var EN_TAG_MAP = {
 
 var state = {
   currentStep: 1,
-  lang: (localStorage.getItem('plato_lang') || 'de') === 'en' ? 'en' : 'de',
+  lang: 'de',
   selectedDate: null,
   waitlist: false,
   selectedTime: null,
@@ -1759,6 +1785,8 @@ function renderSpacesPanel() {
         state.consultationRequested = false;
       }
       renderSpacesPanel();
+      if (typeof renderPackages === 'function') renderPackages();
+      if (typeof renderServiceList === 'function') renderServiceList();
       updateSummary();
     });
   });
@@ -1845,8 +1873,14 @@ function updateUpsellPrompt() {
 }
 
 function scrollToPackages() {
-  var el = document.getElementById('packagesBlock') || document.getElementById('pkgLpGrid');
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (state.currentStep < 3) {
+    goStep(3);
+  }
+  setTimeout(function() {
+    var el = document.getElementById('packagesBlock') || document.querySelector('#panel3 .pkg-form-card');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (typeof notifyParentScrollTop === 'function') notifyParentScrollTop();
+  }, 120);
 }
 
 function updateRuntimeSettings() {
@@ -1908,12 +1942,8 @@ function updateHeroMeta() {}
 
 function applyUiText() {
   var ui = currentUi();
-  document.documentElement.lang = state.lang;
-  localStorage.setItem('plato_lang', state.lang);
-
-  document.querySelectorAll('.lang-btn').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.lang === state.lang);
-  });
+  state.lang = 'de';
+  document.documentElement.lang = 'de';
 
   function setText(sel, value) { var el = document.querySelector(sel); if (el && value != null) el.textContent = value; }
   function setHtml(sel, value) { var el = document.querySelector(sel); if (el && value != null) el.innerHTML = value; }
@@ -1964,7 +1994,6 @@ function applyUiText() {
   if (pkgOccLabel) pkgOccLabel.textContent = state.occasion ? ui.packagesForOccasion + ': ' + displayOccasion(state.occasion) : ui.packagesForOccasion;
   var pkgAdjust = document.querySelector('#packagesBlock > div[style*="font-family"]');
   if (pkgAdjust) pkgAdjust.textContent = ui.packagesAdjust;
-  setText('#packagePreviewNote', ui.packagePreviewNote);
   setText('#serviceRulesNote', ui.serviceRulesDefault);
   setText('#panel3 .btn-secondary', withBack(ui.back));
   setHtml('#panel3 .btn-primary', withArrow(ui.next));
@@ -2012,9 +2041,10 @@ function applyUiText() {
 }
 
 function updateGuestHint() {
-  document.getElementById('guestHint').textContent = (state.lang === 'en' ? 'Min. ' : 'Min. ') + runtimeSettings.minGuests + ' · Max. ' + runtimeSettings.maxGuests;
-  document.getElementById('guestInput').min = runtimeSettings.minGuests;
-  document.getElementById('guestInput').max = runtimeSettings.maxGuests;
+  var input = document.getElementById('guestInput');
+  if (!input) return;
+  input.min = 1;
+  input.max = runtimeSettings.maxGuests;
 }
 
 function weekdayListLabel() {
@@ -2265,10 +2295,21 @@ function renderFeaturedPackages() {
   });
 }
 
+function effectiveSpaceId() {
+  return (state.selectedSpaceId && !state.consultationRequested) ? state.selectedSpaceId : 'plato';
+}
+
+function isAvailableForSpace(item) {
+  var allowed = item && item.allowedSpaceIds;
+  if (!allowed || !allowed.length) return true;
+  return allowed.indexOf(effectiveSpaceId()) !== -1;
+}
+
 function renderPackages() {
   var ui = currentUi();
   var selectedOccasion = state.occasion || '';
   var filtered = getActivePackages().filter(function(pkg) {
+    if (!isAvailableForSpace(pkg)) return false;
     if (!selectedOccasion) return true;
     return !pkg.occasions.length || pkg.occasions.indexOf(selectedOccasion) !== -1;
   });
@@ -2407,11 +2448,12 @@ function budgetTrackStyle(service, value) {
 function renderServiceList() {
   var ui = currentUi();
   var list = document.getElementById('serviceList');
-  if (!getActiveServices().length) {
+  var avail = getActiveServices().filter(isAvailableForSpace);
+  if (!avail.length) {
     list.innerHTML = '<div class="service-card"><div class="service-card-header"><div class="service-info"><div class="service-name">' + esc(ui.noServices) + '</div></div></div></div>';
     return;
   }
-  list.innerHTML = getActiveServices().map(function(service) {
+  list.innerHTML = avail.map(function(service) {
     var selected = !!state.services[service.id];
     var currentPrice = selected ? Number(state.services[service.id].price) : defaultServicePrice(service);
     var priceLabel = service.priceType === 'flat'
@@ -2711,6 +2753,10 @@ function updateSummary() {
   document.getElementById('sum-total').textContent = perPerson > 0 ? fmtEur(perPerson) + ui.perGuest : '– €/Gast';
 }
 
+function onStepClick(target) {
+  if (target <= state.currentStep) goStep(target);
+}
+
 function goStep(step) {
   var ui = currentUi();
   if (step > 1 && state.currentStep === 1) {
@@ -2918,15 +2964,6 @@ function bindStaticEvents() {
   document.querySelectorAll('.occasion-card').forEach(function(card) {
     card.addEventListener('click', function() {
       setOccasion(card.dataset.occ);
-    });
-  });
-  document.querySelectorAll('.lang-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      state.lang = btn.dataset.lang === 'en' ? 'en' : 'de';
-      applyContent();
-      applyUiText();
-      renderCalendar();
-      updateSummary();
     });
   });
 }
