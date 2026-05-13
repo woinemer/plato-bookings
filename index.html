@@ -1,3 +1,6 @@
+
+
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2076,7 +2079,8 @@ function normalizeServices(list) {
       budgetMax: Number(service.budgetMax || 0),
       active: service.active !== false,
       requires: Array.isArray(service.requires) ? service.requires.map(String) : [],
-      excludes: Array.isArray(service.excludes) ? service.excludes.map(String) : []
+      excludes: Array.isArray(service.excludes) ? service.excludes.map(String) : [],
+      allowedSpaceIds: Array.isArray(service.allowedSpaceIds) ? service.allowedSpaceIds.map(String) : []
     };
   }).filter(function(service) { return service.id; });
 }
@@ -2091,6 +2095,7 @@ function normalizePackages(list) {
       modules: Array.isArray(pkg.modules) ? pkg.modules.map(String) : [],
       occasions: Array.isArray(pkg.occasions) ? pkg.occasions.map(String) : [],
       active: pkg.active !== false,
+      allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : []
     };
   }).filter(function(pkg) { return pkg.id; });
 }
