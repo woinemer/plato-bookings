@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1769,9 +1773,9 @@ function normalizeTimeValue(value) {
     return pad(Math.floor(minutes / 60)) + ':' + pad(minutes % 60);
   }
   var text = String(value || '').trim().replace(/^'+/, '');
-  var iso = text.match(/T(\\d{2}):(\\d{2})/);
+  var iso = text.match(/T(\d{2}):(\d{2})/);
   if (iso) return iso[1] + ':' + iso[2];
-  var match = text.match(/^(\\d{1,2})[:.](\\d{2})$/);
+  var match = text.match(/^(\d{1,2})[:.](\d{2})$/);
   if (!match) return '';
   var hour = parseInt(match[1], 10);
   var minute = parseInt(match[2], 10);
