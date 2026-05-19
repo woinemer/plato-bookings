@@ -1,7 +1,3 @@
-
-
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -494,8 +490,8 @@ section{padding:120px 56px;}
 .module-upsell-card{margin-top:10px;padding:12px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);box-shadow:0 8px 22px -20px rgba(54,46,38,.45);}
 .module-upsell-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
 .module-upsell-text{font-size:13px;color:var(--stone);line-height:1.45;margin-bottom:10px;}
-.module-upsell-btn{border:0;border-radius:999px;background:var(--gold);color:var(--night)!important;padding:9px 14px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
-.module-upsell-btn:hover,.module-upsell-btn:focus{background:var(--gold-dark);color:#fff!important;}
+.module-upsell-card .module-upsell-btn{border:0;border-radius:999px;background:var(--gold)!important;color:var(--night)!important;padding:9px 14px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+.module-upsell-card .module-upsell-btn:hover,.module-upsell-card .module-upsell-btn:focus{background:var(--gold-dark)!important;color:var(--night)!important;}
 .upsell-prompt{margin-top:12px;padding:12px 16px;border-radius:var(--radius);background:rgba(186,159,93,.1);border:1px solid rgba(186,159,93,.3);font-size:12px;color:var(--stone);line-height:1.5;}
 .upsell-prompt[hidden]{display:none!important;}
 .upsell-prompt strong{color:var(--gold);}
@@ -653,9 +649,9 @@ section{padding:120px 56px;}
 .service-card:hover{border-color:var(--gold-line);}
 .service-card.selected{border-color:var(--dark);background:var(--cream-2);}
 .service-card.package-covered{border-color:rgba(186,159,93,.4);background:#fffaf0;}
-.service-card.disabled{opacity:.45;background:#f3efe6;cursor:not-allowed;}
+.service-card.disabled{opacity:1;background:#fff;cursor:pointer;}
 .service-card-header{padding:18px 20px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;}
-.service-card.package-covered .service-card-header,.service-card.disabled .service-card-header{cursor:default;}
+.service-card.package-covered .service-card-header{cursor:default;}
 .service-icon{font-size:22px;flex-shrink:0;margin-top:2px;}
 .service-info{flex:1;}
 .service-name{font-weight:600;font-size:14px;color:var(--dark);}
@@ -1320,7 +1316,7 @@ var UI = {
     startPlaceholder: '– Startzeit wählen –',
     durationPlaceholder: '– Dauer wählen –',
     noPackages: 'Keine Pakete hinterlegt.',
-    packageEstimate: 'Ca. {total}/Gast',
+    packageEstimate: 'Ab {total}/Gast',
     packageCoveredBadge: 'Im Paketpreis',
     upgradeBadge: 'Upgrade',
     packagePriceLine: 'Paketpreis',
@@ -1433,7 +1429,7 @@ var UI = {
     startPlaceholder: '- Choose start time -',
     durationPlaceholder: '- Choose duration -',
     noPackages: 'No packages available yet.',
-    packageEstimate: 'Approx. {total}/guest',
+    packageEstimate: 'From {total}/guest',
     packageCoveredBadge: 'In package price',
     upgradeBadge: 'Upgrade',
     packagePriceLine: 'Package price',
@@ -2232,6 +2228,33 @@ function normalizeServices(list) {
   }).filter(function(service) { return service.id; });
 }
 
+function splitRuleIds(value) {
+  return String(value || '').split('|').map(function(id) { return id.trim(); }).filter(Boolean);
+}
+
+function requirementGroups(requires) {
+  return (Array.isArray(requires) ? requires : []).map(splitRuleIds).filter(function(group) {
+    return group.length > 0;
+  });
+}
+
+function requirementGroupSatisfied(group, selectedIds) {
+  return (group || []).some(function(id) { return !!selectedIds[id]; });
+}
+
+function pickRequirementFromGroup(group, preferredId) {
+  var preferred = preferredId ? findService(preferredId) : null;
+  if (preferred && group.indexOf(preferred.id) !== -1) return preferred;
+  return (group || []).map(findService).filter(Boolean)[0] || null;
+}
+
+function requirementGroupLabel(group) {
+  return (group || []).map(function(id) {
+    var service = findService(id);
+    return service ? service.name : id;
+  }).join(' oder ');
+}
+
 function normalizePackages(list) {
   return (Array.isArray(list) ? list : []).map(function(pkg) {
     return {
@@ -2368,10 +2391,13 @@ function removeServiceAndDependents(selectedIds, removeId, notices) {
   delete selectedIds[removeId];
   getActiveServices().forEach(function(service) {
     if (!selectedIds[service.id]) return;
-    if ((service.requires || []).indexOf(removeId) !== -1) {
+    var brokenGroup = requirementGroups(service.requires).find(function(group) {
+      return group.indexOf(removeId) !== -1 && !requirementGroupSatisfied(group, selectedIds);
+    });
+    if (brokenGroup) {
       pushRuleNotice(notices, replaceTokens(currentUi().ruleDependencyRemoved, {
         service: service.name,
-        required: findService(removeId) ? findService(removeId).name : removeId
+        required: requirementGroupLabel(brokenGroup)
       }));
       removeServiceAndDependents(selectedIds, service.id, notices);
     }
@@ -2382,15 +2408,16 @@ function normalizeSelectedIds(selectedIds, notices, preferredId) {
   var changed = true;
   while (changed) {
     changed = false;
-    getActiveServices().forEach(function(service) {
-      if (!selectedIds[service.id]) return;
-      (service.requires || []).forEach(function(requiredId) {
-        var required = findService(requiredId);
-        if (required && !selectedIds[requiredId]) {
-          selectedIds[requiredId] = true;
-          changed = true;
-          pushRuleNotice(notices, replaceTokens(currentUi().ruleAdded, {
-            required: required.name,
+	    getActiveServices().forEach(function(service) {
+	      if (!selectedIds[service.id]) return;
+	      requirementGroups(service.requires).forEach(function(group) {
+	        if (requirementGroupSatisfied(group, selectedIds)) return;
+	        var required = pickRequirementFromGroup(group, preferredId);
+	        if (required && !selectedIds[required.id]) {
+	          selectedIds[required.id] = true;
+	          changed = true;
+	          pushRuleNotice(notices, replaceTokens(currentUi().ruleAdded, {
+	            required: required.name,
             service: service.name
           }));
         }
@@ -2626,20 +2653,13 @@ function selectAndBook(pkgId) {
 }
 
 function disabledByConflict(service) {
-  if (!service || state.services[service.id]) return false;
-  var selectedIds = {};
-  Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
-  if (findUpgradeBase(service, selectedIds, currentPackage())) return false;
-  return selectedServicesInOrder().some(function(selected) {
-    return (service.excludes || []).indexOf(selected.id) !== -1 || (selected.excludes || []).indexOf(service.id) !== -1;
-  });
+  return false;
 }
 
 function toggleService(id) {
   var service = findService(id);
   if (!service) return;
   if (state.services[id] && state.services[id].packageCovered) return;
-  if (disabledByConflict(service)) return;
   var packageMaps = currentPackageMaps();
   var selectedIds = {};
   Object.keys(state.services).forEach(function(serviceId) {
@@ -2649,6 +2669,12 @@ function toggleService(id) {
   if (selectedIds[id]) {
     removeServiceAndDependents(selectedIds, id, lastRuleMessages);
   } else {
+    selectedServicesInOrder().forEach(function(selected) {
+      var selectedBase = findService(selected.id);
+      if (!selectedBase) return;
+      var conflicts = (service.excludes || []).indexOf(selectedBase.id) !== -1 || (selectedBase.excludes || []).indexOf(service.id) !== -1;
+      if (conflicts) delete selectedIds[selectedBase.id];
+    });
     selectedIds[id] = true;
   }
   if (packageMaps.pkg) {
@@ -2766,14 +2792,14 @@ function renderServiceList() {
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
         : '<div class="price-val">' + esc(String(service.pricePerGuest)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>';
     var rulePills = '';
-    if ((service.requires || []).length) {
-      rulePills = '<div class="rule-row">';
-      (service.requires || []).forEach(function(requiredId) {
-        var required = findService(requiredId);
-        if (required) rulePills += '<span class="rule-pill">+ ' + esc(required.name) + '</span>';
-      });
-      rulePills += '</div>';
-    }
+	    if ((service.requires || []).length) {
+	      rulePills = '<div class="rule-row">';
+	      requirementGroups(service.requires).forEach(function(group) {
+	        var label = requirementGroupLabel(group);
+	        if (label) rulePills += '<span class="rule-pill">+ ' + esc(label) + '</span>';
+	      });
+	      rulePills += '</div>';
+	    }
 	    var slider = '';
 	    if (service.priceType === 'budget' && !packageCovered) {
 	      slider = '<div class="budget-slider-wrap" style="display:' + (selected ? 'block' : 'none') + '">' +
@@ -3422,6 +3448,8 @@ function bindStaticEvents() {
 
 bindStaticEvents();
 renderOccasionCards();
+buildStartTimeOptions();
+updateDurationOptions();
 bootPublicPage();
 startDataPolling();
 
