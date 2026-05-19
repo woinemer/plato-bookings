@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -384,6 +388,8 @@ section{padding:120px 56px;}
 .panel-title{font-family:var(--serif);font-weight:400;font-size:34px;color:var(--dark);letter-spacing:-.01em;line-height:1.1;}
 .panel-title em{color:var(--gold);font-style:italic;}
 .panel-sub{font-family:var(--serif);font-style:italic;color:var(--stone);font-size:16px;margin-top:8px;text-wrap:pretty;}
+.module-headline{font-family:var(--serif);font-weight:400;font-size:34px;color:var(--dark);letter-spacing:-.01em;line-height:1.1;margin-bottom:10px;}
+.module-headline em{color:var(--gold);font-style:italic;}
 
 .field-block > .section-label{
   font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
@@ -1050,7 +1056,8 @@ html.iframe-mode .hero { min-height: 0; }
           <div style="font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-top:8px;padding-left:4px">Du kannst die Auswahl unten jederzeit anpassen.</div>
         </div>
         <div class="field-block">
-          <div class="section-label">Gestalte deinen Abend individuell</div>
+          <div class="module-headline">Gestalte deinen Abend <em>individuell.</em></div>
+          <div class="section-label">Module</div>
           <div class="service-list" id="serviceList"></div>
           <div class="service-rules-note" id="serviceRulesNote"></div>
         </div>
@@ -1239,7 +1246,7 @@ var UI = {
     packagesTitle: 'Unsere Empfehlungen',
     packagesAdjust: 'Du kannst die Auswahl unten jederzeit anpassen.',
     packagePreviewNote: 'Die Paketvorschläge rechnen mit deiner aktuellen Gästezahl. Die finale Summe wird serverseitig geprüft.',
-    modulesLabel: 'Gestalte deinen Abend individuell',
+    modulesLabel: 'Module',
     contactLabels: ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Wie bist du auf uns aufmerksam geworden?', 'Nachricht (optional)'],
     placeholders: {
       fname: 'Max',
