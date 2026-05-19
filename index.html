@@ -1,7 +1,3 @@
-
-
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -636,7 +632,6 @@ section{padding:120px 56px;}
 .pkg-desc li{margin:3px 0;}
 .pkg-modules{display:flex;flex-wrap:wrap;gap:4px;}
 .pkg-module-tag{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;background:var(--cream-2);color:var(--stone);padding:3px 8px;border-radius:4px;}
-.pkg-module-tag.included{background:rgba(186,159,93,.16);color:var(--gold);border:1px solid rgba(186,159,93,.24);}
 
 /* Services */
 .service-list{display:flex;flex-direction:column;gap:10px;}
@@ -646,20 +641,19 @@ section{padding:120px 56px;}
 }
 .service-card:hover{border-color:var(--gold-line);}
 .service-card.selected{border-color:var(--dark);background:var(--cream-2);}
-.service-card.included{border-color:var(--gold-line);background:#fffaf0;}
 .service-card.package-covered{border-color:rgba(186,159,93,.4);background:#fffaf0;}
+.service-card.disabled{opacity:.45;background:#f3efe6;cursor:not-allowed;}
 .service-card-header{padding:18px 20px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;}
-.service-card.included .service-card-header,.service-card.package-covered .service-card-header{cursor:default;}
+.service-card.package-covered .service-card-header,.service-card.disabled .service-card-header{cursor:default;}
 .service-icon{font-size:22px;flex-shrink:0;margin-top:2px;}
 .service-info{flex:1;}
 .service-name{font-weight:600;font-size:14px;color:var(--dark);}
 .service-desc{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-top:3px;line-height:1.5;}
-.included-badge{display:inline-flex;margin-top:8px;padding:4px 8px;border-radius:4px;background:rgba(186,159,93,.16);border:1px solid rgba(186,159,93,.24);color:var(--gold);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 .package-covered-badge{display:inline-flex;margin-top:8px;padding:4px 8px;border-radius:4px;background:rgba(44,42,37,.08);border:1px solid rgba(44,42,37,.12);color:var(--stone);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.upgrade-badge{display:inline-flex;margin-top:8px;padding:4px 8px;border-radius:4px;background:rgba(76,175,125,.12);border:1px solid rgba(76,175,125,.22);color:#3f8f68;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 .service-price{text-align:right;flex-shrink:0;min-width:80px;}
 .service-price .price-val{font-family:var(--serif);font-size:20px;color:var(--dark);letter-spacing:-.01em;}
 .service-price .price-sub{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--stone);margin-top:2px;}
-.service-card.included .price-val{color:var(--gold);}
 .service-price .price-old{text-decoration:line-through;text-decoration-thickness:1px;color:var(--stone);opacity:.75;}
 .service-checkbox{
   width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border);
@@ -757,6 +751,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .summary-total .label{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(217,208,188,.55);}
 .summary-total .amount{font-family:var(--serif);font-size:34px;color:var(--gold);letter-spacing:-.015em;}
 .summary-pp{font-size:11px;color:rgba(217,208,188,.4);text-align:right;margin-top:4px;font-weight:500;}
+.maintenance-panel{max-width:680px;margin:0 auto;padding:72px 36px 96px;text-align:center;}
+.maintenance-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:42px 34px;box-shadow:0 18px 50px -36px rgba(26,24,20,.45);}
+.maintenance-box h3{font-family:var(--serif);font-size:34px;font-weight:400;color:var(--dark);letter-spacing:-.01em;margin-bottom:12px;}
+.maintenance-box p{font-family:var(--serif);font-style:italic;color:var(--stone);font-size:17px;line-height:1.65;text-wrap:pretty;}
 
 /* Buttons */
 .btn-primary{
@@ -957,6 +955,13 @@ html.iframe-mode .hero { min-height: 0; }
     <div class="step" id="s3" onclick="onStepClick(3)"><div class="step-num">3</div><span>Leistungen</span></div>
     <div class="step-divider"></div>
     <div class="step" id="s4" onclick="onStepClick(4)"><div class="step-num">4</div><span>Kontakt</span></div>
+  </div>
+
+  <div class="maintenance-panel" id="maintenancePanel" hidden>
+    <div class="maintenance-box">
+      <h3 id="maintenanceTitle">Wir sind gleich wieder da.</h3>
+      <p id="maintenanceMessage">Das Buchungstool wird gerade aktualisiert. Bitte versuche es später erneut.</p>
+    </div>
   </div>
 
   <div class="booking-body" id="mainLayout">
@@ -1191,6 +1196,11 @@ var DEFAULT_PUBLIC_CONTENT = {
   maxDurationHours: '8',
   minLeadDays: '0',
   blockedWeekdays: '',
+  maintenanceEnabled: 'false',
+  maintenanceTitleDe: 'Wir sind gleich wieder da.',
+  maintenanceTitleEn: 'We will be right back.',
+  maintenanceMessageDe: 'Das Buchungstool wird gerade aktualisiert. Bitte versuche es später erneut.',
+  maintenanceMessageEn: 'The booking tool is currently being updated. Please try again later.',
   bookingTitle: 'Termin anfragen.',
   bookingTitle_en: 'Request a date.',
   bookingSub: 'In wenigen Schritten zu deiner persönlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
@@ -1277,7 +1287,7 @@ var UI = {
     waitlistClear: 'Anderes Datum wählen',
     availabilityWindow: 'Buchungen ab {lead} Tagen Vorlauf. Möglich von {start} bis {end} Uhr, {minDur}-{maxDur} Stunden.',
     availabilityWeekdays: 'Nicht verfügbar an: {days}.',
-    serviceRulesDefault: 'Leistungen mit Abhängigkeiten ergänzen wir automatisch. Unverträgliche Kombinationen passen wir direkt an.',
+    serviceRulesDefault: 'Leistungen mit Abhängigkeiten ergänzen wir automatisch. Nicht kombinierbare Module werden ausgegraut.',
     ruleAdded: '{required} wurde ergänzt, weil {service} davon abhängt.',
     ruleConflict: '{remove} wurde entfernt, damit die Auswahl mit {keep} zusammenpasst.',
     ruleDependencyRemoved: '{service} wurde entfernt, weil {required} nicht mehr ausgewählt ist.',
@@ -1295,9 +1305,8 @@ var UI = {
     durationPlaceholder: '– Dauer wählen –',
     noPackages: 'Keine Pakete hinterlegt.',
     packageEstimate: 'Ca. {total}/Gast',
-    includedBadge: 'Inklusive im Paket',
-    includedPrice: 'Inklusive',
     packageCoveredBadge: 'Im Paketpreis',
+    upgradeBadge: 'Upgrade',
     packagePriceLine: 'Paketpreis',
     packageSavings: 'Du sparst {amount}/Gast',
     nightSurcharge: 'Nachtzuschlag',
@@ -1391,7 +1400,7 @@ var UI = {
     waitlistClear: 'Choose another date',
     availabilityWindow: 'Bookings from {lead} days lead time. Possible from {start} to {end}, {minDur}-{maxDur} hours.',
     availabilityWeekdays: 'Unavailable on: {days}.',
-    serviceRulesDefault: 'We add required services automatically and clean up incompatible combinations right away.',
+    serviceRulesDefault: 'We add required services automatically. Incompatible modules are greyed out.',
     ruleAdded: '{required} was added because {service} depends on it.',
     ruleConflict: '{remove} was removed so it does not conflict with {keep}.',
     ruleDependencyRemoved: '{service} was removed because {required} is no longer selected.',
@@ -1409,9 +1418,8 @@ var UI = {
     durationPlaceholder: '- Choose duration -',
     noPackages: 'No packages available yet.',
     packageEstimate: 'Approx. {total}/guest',
-    includedBadge: 'Included in package',
-    includedPrice: 'Included',
     packageCoveredBadge: 'In package price',
+    upgradeBadge: 'Upgrade',
     packagePriceLine: 'Package price',
     packageSavings: 'You save {amount}/guest',
     nightSurcharge: 'Night surcharge',
@@ -1505,6 +1513,8 @@ var contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 var services = [];
 var packages = [];
 var spaces = [];
+var dataVersion = '';
+var dataPollTimer = null;
 var runtimeSettings = {
   nightRate: 150,
   minGuests: 50,
@@ -1994,6 +2004,33 @@ function applyContent() {
   applyPsychologyFeatures();
   renderSpacesPanel();
   updateSmallGroupPanel();
+  applyMaintenanceMode();
+}
+
+function isMaintenanceMode() {
+  return String(contentData.maintenanceEnabled || 'false') === 'true';
+}
+
+function applyMaintenanceMode() {
+  var active = isMaintenanceMode();
+  var panel = document.getElementById('maintenancePanel');
+  var stepper = document.getElementById('stepperBlock');
+  var layout = document.getElementById('mainLayout');
+  var success = document.getElementById('successPanel');
+  if (!panel || !stepper || !layout) return;
+  var title = state.lang === 'en'
+    ? (contentData.maintenanceTitleEn || contentData.maintenanceTitleDe || DEFAULT_PUBLIC_CONTENT.maintenanceTitleEn)
+    : (contentData.maintenanceTitleDe || DEFAULT_PUBLIC_CONTENT.maintenanceTitleDe);
+  var msg = state.lang === 'en'
+    ? (contentData.maintenanceMessageEn || contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageEn)
+    : (contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageDe);
+  document.getElementById('maintenanceTitle').textContent = title;
+  document.getElementById('maintenanceMessage').textContent = msg;
+  panel.hidden = !active;
+  stepper.style.display = active ? 'none' : '';
+  layout.style.display = active ? 'none' : '';
+  if (success && active) success.classList.remove('active');
+  notifyHeight();
 }
 
 function updateHeroMeta() {}
@@ -2179,7 +2216,6 @@ function normalizePackages(list) {
       name: String(pkg.name || ''),
       desc: String(pkg.desc || ''),
       modules: Array.isArray(pkg.modules) ? pkg.modules.map(String) : [],
-      includedModules: Array.isArray(pkg.includedModules) ? pkg.includedModules.map(String) : [],
       occasions: Array.isArray(pkg.occasions) ? pkg.occasions.map(String) : [],
       packagePricePerGuest: Number(pkg.packagePricePerGuest || 0),
       active: pkg.active !== false,
@@ -2205,16 +2241,8 @@ function uniqueIds(ids) {
   });
 }
 
-function packageIncludedIds(pkg) {
-  return uniqueIds(pkg && pkg.includedModules ? pkg.includedModules : []);
-}
-
 function packageChargeableIds(pkg) {
-  var included = {};
-  packageIncludedIds(pkg).forEach(function(id) { included[id] = true; });
-  return uniqueIds(pkg && pkg.modules ? pkg.modules : []).filter(function(id) {
-    return !included[id];
-  });
+  return uniqueIds(pkg && pkg.modules ? pkg.modules : []);
 }
 
 function packagePresetPrice(pkg) {
@@ -2244,9 +2272,42 @@ function currentPackageMaps() {
   var pkg = currentPackage();
   return {
     pkg: pkg,
-    included: idsToMap(packageIncludedIds(pkg)),
     covered: idsToMap(packageCoveredIds(pkg))
   };
+}
+
+function serviceComparableTotal(service) {
+  var price = defaultServicePrice(service);
+  return service.priceType === 'flat' ? price : price * state.guests;
+}
+
+function findUpgradeBase(service, selectedIds, pkg) {
+  if (!service || !pkg || !packageUsesPreset(pkg)) return null;
+  return packageChargeableIds(pkg).map(findService).filter(Boolean).find(function(base) {
+    if (!selectedIds[base.id]) return false;
+    var conflicts = (service.excludes || []).indexOf(base.id) !== -1 || (base.excludes || []).indexOf(service.id) !== -1;
+    return conflicts && serviceComparableTotal(service) > serviceComparableTotal(base);
+  }) || null;
+}
+
+function buildSelectionMeta(selectedIds) {
+  var pkg = currentPackage();
+  var covered = {};
+  var upgrades = {};
+  if (!pkg) return { covered: covered, upgrades: upgrades };
+  Object.keys(selectedIds).forEach(function(id) {
+    var service = findService(id);
+    if (!service || packageChargeableIds(pkg).indexOf(id) !== -1) return;
+    var base = findUpgradeBase(service, selectedIds, pkg);
+    if (base) {
+      delete selectedIds[base.id];
+      upgrades[id] = base.id;
+    }
+  });
+  packageCoveredIds(pkg).forEach(function(id) {
+    if (selectedIds[id]) covered[id] = true;
+  });
+  return { covered: covered, upgrades: upgrades };
 }
 
 function serviceSavingsPerGuest(service, guests) {
@@ -2258,16 +2319,12 @@ function serviceSavingsPerGuest(service, guests) {
 }
 
 function packageSavingsPerGuest(pkg) {
-  var includedSavings = packageIncludedIds(pkg).reduce(function(sum, id) {
-    var service = findService(id);
-    return service ? sum + serviceSavingsPerGuest(service, state.guests) : sum;
-  }, 0);
-  if (!packageUsesPreset(pkg)) return includedSavings;
+  if (!packageUsesPreset(pkg)) return 0;
   var regularPackagePp = packageChargeableIds(pkg).reduce(function(sum, id) {
     var service = findService(id);
     return service ? sum + serviceSavingsPerGuest(service, state.guests) : sum;
   }, 0);
-  return includedSavings + Math.max(0, regularPackagePp - packagePresetPrice(pkg));
+  return Math.max(0, regularPackagePp - packagePresetPrice(pkg));
 }
 
 function pushRuleNotice(list, text) {
@@ -2308,40 +2365,27 @@ function normalizeSelectedIds(selectedIds, notices, preferredId) {
     });
   }
 
-  var processed = {};
-  getActiveServices().forEach(function(service) {
-    if (!selectedIds[service.id]) return;
-    (service.excludes || []).forEach(function(excludedId) {
-      if (!selectedIds[excludedId]) return;
-      var key = [service.id, excludedId].sort().join('::');
-      if (processed[key]) return;
-      processed[key] = true;
-      var keepId = preferredId === excludedId ? excludedId : service.id;
-      var removeId = keepId === service.id ? excludedId : service.id;
-      if (!selectedIds[removeId]) return;
-      delete selectedIds[removeId];
-      pushRuleNotice(notices, replaceTokens(currentUi().ruleConflict, {
-        keep: findService(keepId) ? findService(keepId).name : keepId,
-        remove: findService(removeId) ? findService(removeId).name : removeId
-      }));
-    });
-  });
-
   return selectedIds;
 }
 
-function commitServiceSelection(selectedIds, preservePackage, includedIds, coveredIds) {
-  includedIds = includedIds || {};
+function commitServiceSelection(selectedIds, preservePackage, coveredIds, upgradeFromIds) {
   coveredIds = coveredIds || {};
+  upgradeFromIds = upgradeFromIds || {};
   var next = {};
   getActiveServices().forEach(function(service) {
     if (!selectedIds[service.id]) return;
     var existing = state.services[service.id];
-    var included = !!includedIds[service.id];
     var packageCovered = !!coveredIds[service.id];
+    var upgradeFromId = upgradeFromIds[service.id] || '';
+    var upgradeFrom = upgradeFromId ? findService(upgradeFromId) : null;
     var price = defaultServicePrice(service);
-    if (included) price = 0;
-    else if (existing && existing.price != null && !existing.included) price = Number(existing.price);
+    var chargeTotal = null;
+    if (packageCovered) price = 0;
+    else if (existing && existing.price != null && !existing.packageCovered) price = Number(existing.price);
+    if (upgradeFrom) {
+      chargeTotal = Math.max(0, serviceComparableTotal(service) - serviceComparableTotal(upgradeFrom));
+      price = service.priceType === 'flat' ? chargeTotal : (state.guests > 0 ? Math.round(chargeTotal / state.guests * 100) / 100 : 0);
+    }
     next[service.id] = {
       id: service.id,
       icon: service.icon,
@@ -2350,8 +2394,10 @@ function commitServiceSelection(selectedIds, preservePackage, includedIds, cover
       priceType: service.priceType,
       price: price,
       regularPrice: defaultServicePrice(service),
-      included: included,
       packageCovered: packageCovered,
+      upgradeFromId: upgradeFromId,
+      upgradeFromName: upgradeFrom ? upgradeFrom.name : '',
+      chargeTotal: chargeTotal,
       budgetMin: service.budgetMin,
       budgetMax: service.budgetMax,
       requires: (service.requires || []).slice(),
@@ -2386,20 +2432,12 @@ function packageEstimate(pkg) {
     return packagePresetPrice(pkg) * state.guests;
   }
   var selectedIds = {};
-  var includedIds = {};
-  packageIncludedIds(pkg).forEach(function(id) {
-    if (findService(id)) {
-      selectedIds[id] = true;
-      includedIds[id] = true;
-    }
-  });
   packageChargeableIds(pkg).forEach(function(id) {
     if (findService(id)) selectedIds[id] = true;
   });
-  normalizeSelectedIds(selectedIds, [], packageIncludedIds(pkg)[0] || packageChargeableIds(pkg)[0] || pkg.id);
+  normalizeSelectedIds(selectedIds, [], packageChargeableIds(pkg)[0] || pkg.id);
   var total = getActiveServices().reduce(function(sum, service) {
     if (!selectedIds[service.id]) return sum;
-    if (includedIds[service.id]) return sum;
     var price = defaultServicePrice(service);
     return sum + (service.priceType === 'flat' ? price : price * state.guests);
   }, 0);
@@ -2445,11 +2483,9 @@ function renderPackages() {
       total: fmtEur(ppEstimate),
       guests: state.guests
     });
-    var includedMap = {};
-    packageIncludedIds(pkg).forEach(function(id) { includedMap[id] = true; });
-    var tags = uniqueIds((pkg.modules || []).concat(pkg.includedModules || [])).map(function(moduleId) {
+    var tags = uniqueIds(pkg.modules || []).map(function(moduleId) {
       var service = findService(moduleId);
-      return service ? '<span class="pkg-module-tag' + (includedMap[moduleId] ? ' included' : '') + '">' + esc(service.name) + (includedMap[moduleId] ? ' · ' + ui.includedPrice : '') + '</span>' : '';
+      return service ? '<span class="pkg-module-tag">' + esc(service.name) + '</span>' : '';
     }).join('');
     var badge = (popularId && pkg.id === popularId)
       ? '<div class="pkg-popular-badge">' + esc(getContentValue(state.lang === 'en' ? 'popularBadgeTextEn' : 'popularBadgeTextDe') || 'Beliebt') + '</div>'
@@ -2498,24 +2534,16 @@ function selectPackage(pkgId) {
   var pkg = findPackage(pkgId);
   if (!pkg) return;
   var selectedIds = {};
-  var includedIds = {};
-  var coveredIds = {};
-  packageIncludedIds(pkg).forEach(function(moduleId) {
-    if (findService(moduleId)) {
-      selectedIds[moduleId] = true;
-      includedIds[moduleId] = true;
-    }
-  });
   packageChargeableIds(pkg).forEach(function(moduleId) {
     if (findService(moduleId)) {
       selectedIds[moduleId] = true;
-      if (packageUsesPreset(pkg)) coveredIds[moduleId] = true;
     }
   });
   lastRuleMessages = [];
-  normalizeSelectedIds(selectedIds, lastRuleMessages, packageIncludedIds(pkg)[0] || packageChargeableIds(pkg)[0] || pkg.id);
+  normalizeSelectedIds(selectedIds, lastRuleMessages, packageChargeableIds(pkg)[0] || pkg.id);
   state.selectedPackage = pkgId;
-  commitServiceSelection(selectedIds, true, includedIds, coveredIds);
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, true, meta.covered, meta.upgrades);
   renderPackages();
   renderServiceList();
   renderRuleMessages();
@@ -2532,11 +2560,21 @@ function selectAndBook(pkgId) {
   document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
 }
 
+function disabledByConflict(service) {
+  if (!service || state.services[service.id]) return false;
+  var selectedIds = {};
+  Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
+  if (findUpgradeBase(service, selectedIds, currentPackage())) return false;
+  return selectedServicesInOrder().some(function(selected) {
+    return (service.excludes || []).indexOf(selected.id) !== -1 || (selected.excludes || []).indexOf(service.id) !== -1;
+  });
+}
+
 function toggleService(id) {
   var service = findService(id);
   if (!service) return;
-  if (state.services[id] && state.services[id].included) return;
   if (state.services[id] && state.services[id].packageCovered) return;
+  if (disabledByConflict(service)) return;
   var packageMaps = currentPackageMaps();
   var selectedIds = {};
   Object.keys(state.services).forEach(function(serviceId) {
@@ -2547,9 +2585,15 @@ function toggleService(id) {
     removeServiceAndDependents(selectedIds, id, lastRuleMessages);
   } else {
     selectedIds[id] = true;
-    normalizeSelectedIds(selectedIds, lastRuleMessages, packageMaps.pkg ? (packageIncludedIds(packageMaps.pkg)[0] || packageChargeableIds(packageMaps.pkg)[0] || id) : id);
   }
-  commitServiceSelection(selectedIds, !!packageMaps.pkg, packageMaps.included, packageMaps.covered);
+  if (packageMaps.pkg) {
+    packageChargeableIds(packageMaps.pkg).forEach(function(moduleId) {
+      if (findService(moduleId)) selectedIds[moduleId] = true;
+    });
+  }
+  normalizeSelectedIds(selectedIds, lastRuleMessages, packageMaps.pkg ? (packageChargeableIds(packageMaps.pkg)[0] || id) : id);
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, !!packageMaps.pkg, meta.covered, meta.upgrades);
   renderPackages();
   renderServiceList();
   renderRuleMessages();
@@ -2560,7 +2604,7 @@ function updateBudget(serviceId, value) {
   var service = findService(serviceId);
   var selected = state.services[serviceId];
   if (!service || !selected) return;
-  if (selected.included) return;
+  if (selected.packageCovered) return;
   selected.price = clamp(parseInt(value, 10) || service.budgetMin, service.budgetMin, service.budgetMax);
   // Update slider UI in-place — calling renderServiceList() destroys the slider mid-drag
   var slider = document.querySelector('[data-budget-id="' + serviceId + '"]');
@@ -2589,46 +2633,42 @@ function renderServiceList() {
   list.innerHTML = avail.map(function(service) {
     var selected = !!state.services[service.id];
     var selectedState = selected ? state.services[service.id] : null;
-    var included = !!(selectedState && selectedState.included);
     var packageCovered = !!(selectedState && selectedState.packageCovered);
+    var upgradeFrom = selectedState && selectedState.upgradeFromName;
+    var disabled = disabledByConflict(service);
     var currentPrice = selected ? Number(selectedState.price) : defaultServicePrice(service);
-    var saveLabel = fmtEur(serviceSavingsPerGuest(service, state.guests)) + ui.perGuest;
-    var priceLabel = included
-      ? '<div class="price-val">' + esc(ui.includedPrice) + '</div><div class="price-sub">' + esc(saveLabel) + '</div>'
-      : packageCovered
+    var priceLabel = packageCovered
       ? '<div class="price-val price-old">' + esc(fmtEur(serviceSavingsPerGuest(service, state.guests))) + '</div><div class="price-sub">' + esc(ui.packageCoveredBadge) + '</div>'
+      : upgradeFrom
+      ? '<div class="price-val">' + esc(fmtEur(currentPrice)) + '</div><div class="price-sub">' + esc(ui.upgradeBadge) + '</div>'
       : service.priceType === 'flat'
       ? '<div class="price-val">' + esc(String(service.pricePerGuest)) + ' €</div><div class="price-sub">Flat</div>'
       : service.priceType === 'budget'
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
         : '<div class="price-val">' + esc(String(service.pricePerGuest)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>';
     var rulePills = '';
-    if ((service.requires || []).length || (service.excludes || []).length) {
+    if ((service.requires || []).length) {
       rulePills = '<div class="rule-row">';
       (service.requires || []).forEach(function(requiredId) {
         var required = findService(requiredId);
         if (required) rulePills += '<span class="rule-pill">+ ' + esc(required.name) + '</span>';
       });
-      (service.excludes || []).forEach(function(excludedId) {
-        var excluded = findService(excludedId);
-        if (excluded) rulePills += '<span class="rule-pill warn">× ' + esc(excluded.name) + '</span>';
-      });
       rulePills += '</div>';
     }
     var slider = '';
-    if (service.priceType === 'budget' && !included) {
+    if (service.priceType === 'budget' && !packageCovered) {
       slider = '<div class="budget-slider-wrap" style="display:' + (selected ? 'block' : 'none') + '">' +
         '<div class="budget-slider-top"><span class="budget-slider-lbl">' + esc(ui.estimated) + ' ' + esc(ui.perGuest) + '</span><span class="budget-val">' + esc(String(currentPrice)) + ' €</span></div>' +
         '<input type="range" min="' + esc(service.budgetMin) + '" max="' + esc(service.budgetMax) + '" step="1" value="' + esc(currentPrice) + '" data-budget-id="' + esc(service.id) + '" style="background:' + budgetTrackStyle(service, currentPrice) + '">' +
         '<div class="budget-minmax"><span>' + esc(service.budgetMin) + ' €</span><span>' + esc(service.budgetMax) + ' €</span></div>' +
         '</div>';
     }
-    return '<div class="service-card' + (selected ? ' selected' : '') + (included ? ' included' : '') + (packageCovered ? ' package-covered' : '') + '">' +
+    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + '">' +
       '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
       '<div class="service-icon">' + esc(service.icon) + '</div>' +
       '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
-      (included ? '<div class="included-badge">' + esc(ui.includedBadge) + '</div>' : '') +
       (packageCovered ? '<div class="package-covered-badge">' + esc(ui.packageCoveredBadge) + '</div>' : '') +
+      (upgradeFrom ? '<div class="upgrade-badge">' + esc(ui.upgradeBadge + ' statt ' + upgradeFrom) + '</div>' : '') +
       (!selected && getContentValue('lossFramingEnabled') === 'true' && service.lossText ? '<div class="service-loss-text">' + esc(service.lossText) + '</div>' : '') +
       rulePills + '</div>' +
       '<div class="service-price">' + priceLabel + '</div>' +
@@ -2885,14 +2925,12 @@ function updateSummary() {
       ? '<div class="summary-service"><span class="sname">' + esc(ui.packagePriceLine) + '<small>' + esc(pkg.name) + '</small></span><span class="sval">' + esc(fmtEur(packageBasePerGuest) + ui.perGuest) + '</span></div>'
       : '';
     rows += selected.map(function(service) {
-      if (service.included) {
-        var savedPp = serviceSavingsPerGuest(service, state.guests);
-        return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(ui.includedBadge + ' · ' + fmtEur(savedPp) + ui.perGuest) + '</small></span><span class="sval">' + esc(ui.includedPrice) + '</span></div>';
-      }
       if (service.packageCovered) {
-        var delta = service.priceType === 'budget' ? Number(service.price || 0) - Number(service.regularPrice || 0) : 0;
-        var deltaLabel = delta === 0 ? ui.packageCoveredBadge : ((delta > 0 ? '+' : '') + fmtEur(delta) + ui.perGuest);
-        return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(ui.packageCoveredBadge + ' · regulär ' + fmtEur(serviceSavingsPerGuest(service, state.guests)) + ui.perGuest) + '</small></span><span class="sval">' + esc(deltaLabel) + '</span></div>';
+        return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(ui.packageCoveredBadge + ' · regulär ' + fmtEur(serviceSavingsPerGuest(service, state.guests)) + ui.perGuest) + '</small></span><span class="sval">' + esc(ui.packageCoveredBadge) + '</span></div>';
+      }
+      if (service.upgradeFromId) {
+        var upgradePp = state.guests > 0 ? Math.round((service.chargeTotal || 0) / state.guests * 100) / 100 : 0;
+        return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(ui.upgradeBadge + ' statt ' + service.upgradeFromName) + '</small></span><span class="sval">' + esc(fmtEur(upgradePp) + ui.perGuest) + '</span></div>';
       }
       var ppContrib = service.priceType === 'flat'
         ? (state.guests > 0 ? Math.round(service.price / state.guests * 100) / 100 : 0)
@@ -2912,11 +2950,10 @@ function updateSummary() {
     container.innerHTML = badge + rows;
   }
   var total = selected.reduce(function(sum, service) {
-    if (service.included) return sum;
     if (service.packageCovered) {
-      if (service.priceType !== 'budget') return sum;
-      return sum + ((Number(service.price || 0) - Number(service.regularPrice || 0)) * state.guests);
+      return sum;
     }
+    if (service.chargeTotal != null) return sum + service.chargeTotal;
     return sum + (service.priceType === 'flat' ? service.price : service.price * state.guests);
   }, usesPreset ? packageBasePerGuest * state.guests : 0) + state.nightSurcharge;
   var perPerson = state.guests > 0 && total > 0 ? Math.round(total / state.guests * 100) / 100 : 0;
@@ -3028,6 +3065,10 @@ function buildSubmitPayload() {
 
 function submitBooking() {
   var ui = currentUi();
+  if (isMaintenanceMode()) {
+    alert(contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageDe);
+    return;
+  }
   if (!state.selectedDate) { alert(ui.errors.date); return; }
   if (!state.selectedTime) { alert(ui.errors.time); return; }
   if (!state.duration) { alert(ui.errors.duration); return; }
@@ -3084,7 +3125,25 @@ function seedDevData() {
   contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 }
 
-async function loadRemoteData() {
+function reconcileSelectionAfterDataReload() {
+  var selectedIds = {};
+  Object.keys(state.services).forEach(function(id) {
+    if (findService(id)) selectedIds[id] = true;
+  });
+  var pkg = currentPackage();
+  if (state.selectedPackage && !pkg) state.selectedPackage = '';
+  if (pkg) {
+    packageChargeableIds(pkg).forEach(function(id) {
+      if (findService(id)) selectedIds[id] = true;
+    });
+  }
+  normalizeSelectedIds(selectedIds, [], pkg ? (packageChargeableIds(pkg)[0] || pkg.id) : '');
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, !!pkg, meta.covered, meta.upgrades);
+}
+
+async function loadRemoteData(options) {
+  options = options || {};
   try {
     var contentResult = await runServer('getContentData');
     if (contentResult && contentResult.success) {
@@ -3092,13 +3151,15 @@ async function loadRemoteData() {
       services = normalizeServices(contentResult.services || []);
       packages = normalizePackages(contentResult.packages || []);
       spaces = Array.isArray(contentResult.spaces) ? contentResult.spaces : [];
+      dataVersion = contentResult.version || dataVersion;
       if (Array.isArray(contentResult.occasions) && contentResult.occasions.length) {
         loadedOccasions = contentResult.occasions;
       }
     }
   } catch (err) {
-    seedDevData();
+    if (!options.silent) seedDevData();
   }
+  reconcileSelectionAfterDataReload();
   applyContent();
   applyUiText();
   renderOccasionCards();
@@ -3110,6 +3171,19 @@ async function loadRemoteData() {
   updateSmallGroupPanel();
   updateSummary();
   notifyHeight();
+}
+
+function startDataPolling() {
+  if (dataPollTimer) clearInterval(dataPollTimer);
+  dataPollTimer = setInterval(function() {
+    runServer('getDataVersion')
+      .then(function(result) {
+        if (result && result.version && dataVersion && result.version !== dataVersion) {
+          return loadRemoteData({ silent: true });
+        }
+      })
+      .catch(function() {});
+  }, 60000);
 }
 
 function bindStaticEvents() {
@@ -3140,6 +3214,7 @@ function bindStaticEvents() {
 bindStaticEvents();
 renderOccasionCards();
 loadRemoteData();
+startDataPolling();
 
 // --- IFRAME EMBED SUPPORT ---
 
