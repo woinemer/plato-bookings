@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -46,12 +50,8 @@ body{
   line-height:1.55;
   -webkit-font-smoothing:antialiased;
 }
-body.booting #stepperBlock,
-body.booting #mainLayout,
 body.maintenance-active #stepperBlock,
 body.maintenance-active #mainLayout{display:none!important;}
-body.public-ready #bootPanel,
-body.maintenance-active #bootPanel{display:none!important;}
 img{display:block;max-width:100%;}
 button{font-family:inherit;}
 a{color:inherit;}
@@ -491,11 +491,11 @@ section{padding:120px 56px;}
 .newsletter-pdf-link a{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:999px;background:rgba(186,159,93,.15);border:1px solid rgba(186,159,93,.4);color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s;}
 .newsletter-pdf-link a:hover{background:rgba(186,159,93,.25);}
 .service-loss-text{margin-top:10px;padding:10px 12px;border-radius:var(--radius);background:rgba(186,159,93,.12);border:1px solid rgba(186,159,93,.28);color:#6b5430;font-size:12px;font-weight:600;line-height:1.45;}
-.module-upsell-card{margin:0 18px 16px 66px;padding:14px 16px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);box-shadow:0 8px 22px -20px rgba(54,46,38,.45);}
+.module-upsell-card{margin-top:10px;padding:12px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);box-shadow:0 8px 22px -20px rgba(54,46,38,.45);}
 .module-upsell-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
 .module-upsell-text{font-size:13px;color:var(--stone);line-height:1.45;margin-bottom:10px;}
-.module-upsell-btn{border:0;border-radius:999px;background:var(--gold);color:#fff;padding:9px 14px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
-.module-upsell-btn:hover{background:var(--gold-dark);}
+.module-upsell-btn{border:0;border-radius:999px;background:var(--gold);color:var(--night)!important;padding:9px 14px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+.module-upsell-btn:hover,.module-upsell-btn:focus{background:var(--gold-dark);color:#fff!important;}
 .upsell-prompt{margin-top:12px;padding:12px 16px;border-radius:var(--radius);background:rgba(186,159,93,.1);border:1px solid rgba(186,159,93,.3);font-size:12px;color:var(--stone);line-height:1.5;}
 .upsell-prompt[hidden]{display:none!important;}
 .upsell-prompt strong{color:var(--gold);}
@@ -762,14 +762,13 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .summary-total .label{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(217,208,188,.55);}
 .summary-total .amount{font-family:var(--serif);font-size:34px;color:var(--gold);letter-spacing:-.015em;}
 .summary-pp{font-size:11px;color:rgba(217,208,188,.4);text-align:right;margin-top:4px;font-weight:500;}
+.form-notice{display:none;margin:0 0 22px;padding:14px 16px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);border-left:4px solid var(--gold);color:var(--stone);font-size:13px;font-weight:700;line-height:1.45;}
+.form-notice.active{display:block;}
+.form-notice.error{background:#fff4ef;border-color:rgba(176,83,45,.35);border-left-color:#b0532d;color:#6f3925;}
 .maintenance-panel{max-width:680px;margin:0 auto;padding:72px 36px 96px;text-align:center;}
 .maintenance-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:42px 34px;box-shadow:0 18px 50px -36px rgba(26,24,20,.45);}
 .maintenance-box h3{font-family:var(--serif);font-size:34px;font-weight:400;color:var(--dark);letter-spacing:-.01em;margin-bottom:12px;}
 .maintenance-box p{font-family:var(--serif);font-style:italic;color:var(--stone);font-size:17px;line-height:1.65;text-wrap:pretty;}
-.boot-panel{max-width:680px;margin:0 auto;padding:72px 36px 96px;text-align:center;}
-.boot-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:34px;box-shadow:0 18px 50px -36px rgba(26,24,20,.45);}
-.boot-spinner{width:36px;height:36px;margin:0 auto 16px;border:2px solid rgba(186,159,93,.18);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
-.boot-box p{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--stone);}
 
 /* Buttons */
 .btn-primary{
@@ -945,7 +944,7 @@ footer{
 html.iframe-mode .hero { min-height: 0; }
 </style>
 </head>
-<body class="booting">
+<body>
 
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
@@ -979,15 +978,10 @@ html.iframe-mode .hero { min-height: 0; }
     </div>
   </div>
 
-  <div class="boot-panel" id="bootPanel">
-    <div class="boot-box">
-      <div class="boot-spinner"></div>
-      <p>Buchungstool wird geprüft...</p>
-    </div>
-  </div>
-
   <div class="booking-body" id="mainLayout">
     <div>
+      <div class="form-notice" id="formNotice" role="status" aria-live="polite"></div>
+
       <!-- PANEL 1: DATE -->
       <div class="panel active" id="panel1">
         <div>
@@ -1870,17 +1864,19 @@ function renderSpacesPanel() {
       if (id === '__consult__') {
         state.consultationRequested = !state.consultationRequested;
         if (state.consultationRequested) state.selectedSpaceId = '';
-      } else {
-        state.selectedSpaceId = (state.selectedSpaceId === id) ? '' : id;
-        state.consultationRequested = false;
-      }
-      renderSpacesPanel();
-      if (typeof renderPackages === 'function') renderPackages();
-      if (typeof renderServiceList === 'function') renderServiceList();
-      updateSummary();
-    });
-  });
-}
+	      } else {
+	        state.selectedSpaceId = (state.selectedSpaceId === id) ? '' : id;
+	        state.consultationRequested = false;
+	      }
+	      reconcileAvailabilitySelection();
+	      renderSpacesPanel();
+	      if (typeof renderPackages === 'function') renderPackages();
+	      if (typeof renderServiceList === 'function') renderServiceList();
+	      if (typeof renderRuleMessages === 'function') renderRuleMessages();
+	      updateSummary();
+	    });
+	  });
+	}
 
 function updateSmallGroupPanel() {
   var panel = document.getElementById('smallGroupAlt');
@@ -1901,11 +1897,12 @@ function updateSmallGroupPanel() {
 
   var show = enabled && state.guests > 0 && state.guests < threshold;
   panel.hidden = !show;
-  if (!show && (state.selectedSpaceId || state.consultationRequested)) {
-    state.selectedSpaceId = '';
-    state.consultationRequested = false;
-  }
-}
+	  if (!show && (state.selectedSpaceId || state.consultationRequested)) {
+	    state.selectedSpaceId = '';
+	    state.consultationRequested = false;
+	    reconcileAvailabilitySelection();
+	  }
+	}
 
 function updateSuccessPanel(waitlist) {
   var lang = state.lang;
@@ -2050,7 +2047,7 @@ function applyMaintenanceMode() {
   document.getElementById('maintenanceMessage').textContent = msg;
   panel.hidden = !active;
   document.body.classList.toggle('maintenance-active', active);
-  document.body.classList.toggle('public-ready', !active && !document.body.classList.contains('booting'));
+  document.body.classList.toggle('public-ready', !active);
   stepper.style.display = active ? 'none' : '';
   layout.style.display = active ? 'none' : '';
   if (success && active) success.classList.remove('active');
@@ -2493,6 +2490,36 @@ function isAvailableForSpace(item) {
   return allowed.indexOf(effectiveSpaceId()) !== -1;
 }
 
+function reconcileAvailabilitySelection() {
+  var changed = false;
+  var pkg = currentPackage();
+  if (pkg && !isAvailableForSpace(pkg)) {
+    state.selectedPackage = '';
+    pkg = null;
+    changed = true;
+  }
+  var selectedIds = {};
+  Object.keys(state.services).forEach(function(id) {
+    var service = findService(id);
+    if (service && isAvailableForSpace(service)) {
+      selectedIds[id] = true;
+    } else {
+      changed = true;
+    }
+  });
+  if (pkg) {
+    packageChargeableIds(pkg).forEach(function(id) {
+      var service = findService(id);
+      if (service && isAvailableForSpace(service)) selectedIds[id] = true;
+      else changed = true;
+    });
+  }
+  normalizeSelectedIds(selectedIds, lastRuleMessages, pkg ? (packageChargeableIds(pkg)[0] || pkg.id) : '');
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, !!pkg, meta.covered, meta.upgrades);
+  return changed;
+}
+
 function renderPackages() {
   var ui = currentUi();
   var selectedOccasion = state.occasion || '';
@@ -2639,8 +2666,34 @@ function toggleService(id) {
 }
 
 function selectUpsellTarget(targetId) {
-  if (!targetId || state.services[targetId]) return;
-  toggleService(targetId);
+  var target = findService(targetId);
+  if (!target || state.services[target.id]) return;
+  var packageMaps = currentPackageMaps();
+  var selectedIds = {};
+  Object.keys(state.services).forEach(function(serviceId) {
+    selectedIds[serviceId] = true;
+  });
+  selectedServicesInOrder().forEach(function(selected) {
+    var selectedBase = findService(selected.id);
+    if (!selectedBase) return;
+    var pointsToTarget = String(selectedBase.upsellTargetId || '').trim() === target.id;
+    var conflictsTarget = (target.excludes || []).indexOf(selectedBase.id) !== -1 || (selectedBase.excludes || []).indexOf(target.id) !== -1;
+    if (pointsToTarget || conflictsTarget) delete selectedIds[selectedBase.id];
+  });
+  selectedIds[target.id] = true;
+  if (packageMaps.pkg) {
+    packageChargeableIds(packageMaps.pkg).forEach(function(moduleId) {
+      if (findService(moduleId)) selectedIds[moduleId] = true;
+    });
+  }
+  lastRuleMessages = [];
+  normalizeSelectedIds(selectedIds, lastRuleMessages, packageMaps.pkg ? (packageChargeableIds(packageMaps.pkg)[0] || target.id) : target.id);
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, !!packageMaps.pkg, meta.covered, meta.upgrades);
+  renderPackages();
+  renderServiceList();
+  renderRuleMessages();
+  updateSummary();
 }
 
 function updateBudget(serviceId, value) {
@@ -2659,20 +2712,26 @@ function updateBudget(serviceId, value) {
   updateSummary();
 }
 
-function renderModuleUpsell(service, selected) {
-  if (!selected || getContentValue('upsellEnabled') !== 'true') return '';
-  var targetId = String(service.upsellTargetId || '').trim();
-  if (!targetId || state.services[targetId]) return '';
-  var target = findService(targetId);
-  if (!target || target.active === false) return '';
-  var text = String(service.upsellText || '').trim();
+function getUpsellSourceForTarget(target) {
+  if (!target || getContentValue('upsellEnabled') !== 'true' || state.services[target.id]) return null;
+  return selectedServicesInOrder().map(function(selected) {
+    return findService(selected.id);
+  }).filter(Boolean).find(function(source) {
+    return String(source.upsellTargetId || '').trim() === target.id;
+  }) || null;
+}
+
+function renderModuleUpsell(service) {
+  var source = getUpsellSourceForTarget(service);
+  if (!source) return '';
+  var text = String(source.upsellText || '').trim();
   if (!text) {
-    text = 'Noch hochwertiger: Upgrade von ' + service.name + ' auf ' + target.name + ' empfehlen.';
+    text = 'Noch hochwertiger: Upgrade von ' + source.name + ' auf ' + service.name + ' empfehlen.';
   }
   return '<div class="module-upsell-card">' +
     '<div class="module-upsell-kicker">Empfehlung</div>' +
     '<div class="module-upsell-text">' + esc(text) + '</div>' +
-    '<button class="module-upsell-btn" type="button" data-upsell-target="' + esc(target.id) + '">' + esc(target.name) + ' wählen</button>' +
+    '<button class="module-upsell-btn" type="button" data-upsell-target="' + esc(service.id) + '">' + esc(service.name) + ' wählen</button>' +
     '</div>';
 }
 
@@ -2715,16 +2774,16 @@ function renderServiceList() {
       });
       rulePills += '</div>';
     }
-    var slider = '';
-    if (service.priceType === 'budget' && !packageCovered) {
-      slider = '<div class="budget-slider-wrap" style="display:' + (selected ? 'block' : 'none') + '">' +
-        '<div class="budget-slider-top"><span class="budget-slider-lbl">' + esc(ui.estimated) + ' ' + esc(ui.perGuest) + '</span><span class="budget-val">' + esc(String(currentPrice)) + ' €</span></div>' +
+	    var slider = '';
+	    if (service.priceType === 'budget' && !packageCovered) {
+	      slider = '<div class="budget-slider-wrap" style="display:' + (selected ? 'block' : 'none') + '">' +
+	        '<div class="budget-slider-top"><span class="budget-slider-lbl">' + esc(ui.estimated) + ' ' + esc(ui.perGuest) + '</span><span class="budget-val">' + esc(String(currentPrice)) + ' €</span></div>' +
         '<input type="range" min="' + esc(service.budgetMin) + '" max="' + esc(service.budgetMax) + '" step="1" value="' + esc(currentPrice) + '" data-budget-id="' + esc(service.id) + '" style="background:' + budgetTrackStyle(service, currentPrice) + '">' +
         '<div class="budget-minmax"><span>' + esc(service.budgetMin) + ' €</span><span>' + esc(service.budgetMax) + ' €</span></div>' +
         '</div>';
-    }
-	    var moduleUpsell = renderModuleUpsell(service, selected);
-	    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + '">' +
+	    }
+	    var moduleUpsell = renderModuleUpsell(service);
+		    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + '">' +
 	      '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
 	      '<div class="service-icon">' + esc(service.icon) + '</div>' +
 	      '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
@@ -2732,10 +2791,9 @@ function renderServiceList() {
 	      (upgradeFrom ? '<div class="upgrade-badge">' + esc(ui.upgradeBadge + ' statt ' + upgradeFrom) + '</div>' : '') +
 	      (!selected && getContentValue('lossFramingEnabled') === 'true' && service.lossText ? '<div class="service-loss-text">' + esc(service.lossText) + '</div>' : '') +
 	      rulePills + '</div>' +
-	      '<div class="service-price">' + priceLabel + '</div>' +
+	      '<div class="service-price">' + priceLabel + moduleUpsell + '</div>' +
 	      '<div class="service-checkbox">' + (selected ? '✓' : '') + '</div>' +
 	      '</div>' +
-	      moduleUpsell +
 	      slider +
 	      '</div>';
 	  }).join('');
@@ -2927,6 +2985,7 @@ function validateGuestCount() {
   }
   if (input) input.classList.remove('invalid');
   if (error) error.style.display = 'none';
+  reconcileAvailabilitySelection();
   renderPackages();
   renderServiceList();
   updateSmallGroupPanel();
@@ -3035,14 +3094,15 @@ function onStepClick(target) {
 function goStep(step) {
   var ui = currentUi();
   if (step > 1 && state.currentStep === 1) {
-    if (!state.selectedDate) { alert(ui.errors.date); return; }
-    if (!state.selectedTime) { alert(ui.errors.time); return; }
-    if (!state.duration) { alert(ui.errors.duration); return; }
+    if (!state.selectedDate) { showFormNotice(ui.errors.date, 1); return; }
+    if (!state.selectedTime) { showFormNotice(ui.errors.time, 1); return; }
+    if (!state.duration) { showFormNotice(ui.errors.duration, 1); return; }
   }
   if (step > 2 && state.currentStep === 2) {
     if (!validateGuestCount()) return;
-    if (!state.occasion) { alert(ui.errors.occasion); return; }
+    if (!state.occasion) { showFormNotice(ui.errors.occasion, 2); return; }
   }
+  clearFormNotice();
   state.currentStep = step;
   document.querySelectorAll('.panel').forEach(function(panel) { panel.classList.remove('active'); });
   document.getElementById('panel' + step).classList.add('active');
@@ -3053,6 +3113,33 @@ function goStep(step) {
     if (index < step) el.classList.add('done');
   });
   if (isInIframe()) { notifyParentScrollTop(); } else { document.getElementById('booking').scrollIntoView({ behavior: 'smooth' }); }
+  notifyHeight();
+}
+
+function clearFormNotice() {
+  var notice = document.getElementById('formNotice');
+  if (!notice) return;
+  notice.classList.remove('active', 'error');
+  notice.textContent = '';
+}
+
+function showFormNotice(message, step) {
+  var notice = document.getElementById('formNotice');
+  if (!notice) return;
+  notice.textContent = message;
+  notice.classList.add('active', 'error');
+  if (step && step !== state.currentStep) {
+    state.currentStep = step;
+    document.querySelectorAll('.panel').forEach(function(panel) { panel.classList.remove('active'); });
+    document.getElementById('panel' + step).classList.add('active');
+    [1, 2, 3, 4].forEach(function(index) {
+      var el = document.getElementById('s' + index);
+      el.classList.remove('active', 'done');
+      if (index === step) el.classList.add('active');
+      if (index < step) el.classList.add('done');
+    });
+  }
+  if (notice.scrollIntoView) notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
   notifyHeight();
 }
 
@@ -3139,15 +3226,16 @@ function buildSubmitPayload() {
 function submitBooking() {
   var ui = currentUi();
   if (isMaintenanceMode()) {
-    alert(contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageDe);
+    showFormNotice(contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageDe, state.currentStep);
     return;
   }
-  if (!state.selectedDate) { alert(ui.errors.date); return; }
-  if (!state.selectedTime) { alert(ui.errors.time); return; }
-  if (!state.duration) { alert(ui.errors.duration); return; }
+  if (!state.selectedDate) { showFormNotice(ui.errors.date, 1); return; }
+  if (!state.selectedTime) { showFormNotice(ui.errors.time, 1); return; }
+  if (!state.duration) { showFormNotice(ui.errors.duration, 1); return; }
   if (!validateGuestCount()) return;
-  if (!state.occasion) { alert(ui.errors.occasion); return; }
-  if (!validateContactFields()) return;
+  if (!state.occasion) { showFormNotice(ui.errors.occasion, 2); return; }
+  if (!validateContactFields()) { showFormNotice(state.lang === 'en' ? 'Please complete the highlighted contact fields.' : 'Bitte fülle die markierten Kontaktfelder aus.', 4); return; }
+  clearFormNotice();
 
   var payload = buildSubmitPayload();
   var submitBtn = document.getElementById('submitBtn');
@@ -3160,13 +3248,13 @@ function submitBooking() {
       showSuccessPanel(result.bookingId || '');
       return;
     }
-    alert((state.lang === 'en' ? 'Error:\n' : 'Fehler:\n') + ((result && result.errors) ? result.errors.join('\n') : (state.lang === 'en' ? 'Unknown error.' : 'Unbekannter Fehler.')));
+    showFormNotice(((result && result.errors) ? result.errors.join(' ') : (state.lang === 'en' ? 'Unknown error.' : 'Unbekannter Fehler.')), 4);
     submitBtn.disabled = false;
   }
 
   function handleFailure(err) {
     setLoading(false);
-    alert(ui.errors.connection + ((err && err.message) || err || ''));
+    showFormNotice(ui.errors.connection + ((err && err.message) || err || ''), 4);
     submitBtn.disabled = false;
   }
 
@@ -3273,13 +3361,11 @@ async function bootPublicPage() {
     updateDurationOptions();
     updateAvailabilityNote();
     renderCalendar();
-    document.body.classList.remove('booting');
     applyMaintenanceMode();
     if (isMaintenanceMode()) return;
     document.body.classList.add('public-ready');
     await loadRemoteData();
   } catch (err) {
-    document.body.classList.remove('booting');
     document.body.classList.add('public-ready');
     await loadRemoteData();
   }
