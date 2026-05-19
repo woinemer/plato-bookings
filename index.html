@@ -603,8 +603,11 @@ section{padding:120px 56px;}
 }
 .occasion-card:hover{border-color:var(--gold-line);}
 .occasion-card.selected{background:var(--dark);border-color:var(--dark);color:var(--beige);}
-.occasion-card.selected .oc-icon{filter:grayscale(0);}
-.oc-icon{font-size:22px;margin-bottom:8px;}
+.occasion-card.selected .oc-icon{color:var(--gold);}
+.oc-icon{width:42px;height:42px;margin:0 auto 9px;color:var(--gold);display:flex;align-items:center;justify-content:center;}
+.oc-icon svg{width:40px;height:40px;stroke:currentColor;fill:none;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round;}
+.oc-icon .legacy-icon{font-size:28px;line-height:1;}
+.oc-icon .catalog-icon-img{width:42px;height:42px;}
 .oc-label{font-size:12px;font-weight:500;letter-spacing:.02em;}
 .occasion-text{
   width:100%;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);
@@ -637,10 +640,10 @@ section{padding:120px 56px;}
   display:none;place-items:center;font-size:12px;font-weight:600;
 }
 .pkg-card.selected .pkg-checkmark{display:grid;}
-.pkg-icon,.service-icon{width:32px;height:32px;margin-bottom:8px;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.pkg-icon svg,.service-icon svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round;}
-.pkg-icon .legacy-icon,.service-icon .legacy-icon{font-size:24px;line-height:1;}
-.catalog-icon-img{width:32px;height:32px;object-fit:contain;display:block;}
+.pkg-icon,.service-icon{width:46px;height:46px;margin-bottom:10px;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pkg-icon svg,.service-icon svg{width:40px;height:40px;stroke:currentColor;fill:none;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round;}
+.pkg-icon .legacy-icon,.service-icon .legacy-icon{font-size:30px;line-height:1;}
+.catalog-icon-img{width:46px;height:46px;object-fit:contain;display:block;}
 .pkg-name{font-family:var(--serif);font-size:17px;color:var(--dark);margin-bottom:4px;letter-spacing:-.01em;}
 .pkg-desc{font-family:var(--serif);font-style:italic;font-size:14px;color:#4f493f;margin-bottom:10px;line-height:1.65;}
 .pkg-desc p{margin:0 0 8px;}
@@ -1524,7 +1527,7 @@ function renderOccasionCards() {
   grid.innerHTML = loadedOccasions.map(function(occ) {
     var active = selected === occ.label ? ' selected' : '';
     return '<div class="occasion-card' + active + '" data-occ="' + occ.label.replace(/"/g, '&quot;') + '">' +
-           '<div class="oc-icon">' + occ.icon + '</div>' +
+           '<div class="oc-icon">' + renderOccasionIcon(occ) + '</div>' +
            '<div class="oc-label">' + occ.label + '</div></div>';
   }).join('');
   grid.querySelectorAll('.occasion-card').forEach(function(card) {
@@ -1645,6 +1648,18 @@ var ICON_SVGS = {
   water: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5c4 5 7 9 7 14a7 7 0 0 1-14 0c0-5 3-9 7-14Z"/><path d="M13 22c1.5 1.4 4.5 1.4 6 0"/></svg>'
 };
 
+var OCCASION_ICON_BY_LABEL = {
+  'Geburtstag': 'cake',
+  'Firmenfeier': 'building',
+  'Hochzeit': 'ring',
+  'Jubiläum': 'celebration',
+  'Jubilaeum': 'celebration',
+  'Vereinsfeier': 'handshake-premium',
+  'Sonstiges': 'sparkles'
+};
+
+ICON_SVGS['handshake-premium'] = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 18l4-4 4 4 2-2"/><path d="M6 15l4-4 4 3"/><path d="M26 15l-4-4-4 3"/><path d="M9 19l3 3a3 3 0 0 0 4.2 0l1.8-1.8"/><path d="M5 21l4-4"/><path d="M27 21l-4-4"/></svg>';
+
 function renderCatalogIcon(icon) {
   var key = String(icon || '').trim();
   if (/^(https?:\/\/|data:image\/)/i.test(key)) {
@@ -1652,6 +1667,16 @@ function renderCatalogIcon(icon) {
   }
   if (ICON_SVGS[key]) return ICON_SVGS[key];
   return '<span class="legacy-icon">' + esc(key) + '</span>';
+}
+
+function renderOccasionIcon(occ) {
+  var icon = String(occ && occ.icon || '').trim();
+  if (/^(https?:\/\/|data:image\/)/i.test(icon) || ICON_SVGS[icon]) {
+    return renderCatalogIcon(icon);
+  }
+  var labelKey = OCCASION_ICON_BY_LABEL[String(occ && occ.label || '').trim()];
+  if (labelKey) return renderCatalogIcon(labelKey);
+  return renderCatalogIcon(icon);
 }
 
 function renderCatalogImage(url, cls) {
@@ -2359,11 +2384,15 @@ function requirementGroupLabel(group) {
 
 function normalizePackages(list) {
   return (Array.isArray(list) ? list : []).map(function(pkg) {
+    var desc = String(pkg.desc || '');
+    if (String(pkg.id || '') === 'pkg_vesper' && (!desc || desc === 'Vesper & 1 0,5 l Woinemer Bier inkl. Tischwasser.')) {
+      desc = 'Unser Tagespaket für entspannte Mittagsveranstaltungen: ein herzhaftes Vesper mit regionalem Charakter, dazu pro Gast ein 0,5 l Woinemer Bier und Tischwasser inklusive. Buchbar ab 50 Gästen, sonntags oder werktags zwischen 12:00 und 14:00 Uhr.';
+    }
     return {
       id: String(pkg.id || ''),
       icon: String(pkg.icon || ''),
       name: String(pkg.name || ''),
-      desc: String(pkg.desc || ''),
+      desc: desc,
       imageUrl: String(pkg.imageUrl || ''),
       modules: Array.isArray(pkg.modules) ? pkg.modules.map(String) : [],
       occasions: Array.isArray(pkg.occasions) ? pkg.occasions.map(String) : [],
@@ -2408,16 +2437,29 @@ function serviceOptionBasePrice(service, selectedState, fallbackPrice) {
 }
 
 function serviceTimeSurchargeTotal(service) {
+  return serviceTimeSurchargeInfo(service).total;
+}
+
+function serviceTimeSurchargeInfo(service) {
   var flat = Number(service && service.surchargeFlatPerStartedHour || 0);
-  if (!flat || !service.surchargeStartTime || !state.selectedTime || !state.duration) return 0;
+  if (!flat || !service.surchargeStartTime || !state.selectedTime || !state.duration) {
+    return { total: 0, units: 0, flat: flat, threshold: service && service.surchargeStartTime ? service.surchargeStartTime : '' };
+  }
   var startMinutes = toMinutes(state.selectedTime);
   var threshold = toMinutes(service.surchargeStartTime);
-  if (threshold == null || isNaN(threshold)) return 0;
+  if (threshold == null || isNaN(threshold)) return { total: 0, units: 0, flat: flat, threshold: service.surchargeStartTime };
   if (threshold <= startMinutes) threshold += 1440;
   var endMinutes = startMinutes + state.duration * 60;
   var overMinutes = endMinutes - threshold;
-  if (overMinutes <= 0) return 0;
-  return Math.ceil(overMinutes / 60) * flat;
+  if (overMinutes <= 0) return { total: 0, units: 0, flat: flat, threshold: service.surchargeStartTime };
+  var units = Math.ceil(overMinutes / 60);
+  return { total: units * flat, units: units, flat: flat, threshold: service.surchargeStartTime };
+}
+
+function serviceTimeSurchargeLabel(service) {
+  var info = serviceTimeSurchargeInfo(service);
+  if (!info.total) return '';
+  return info.units + ' × ' + info.flat + ' €';
 }
 
 function uniqueIds(ids) {
@@ -3015,7 +3057,7 @@ function renderServiceList() {
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
         : '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>';
     if (timeSurcharge > 0) {
-      priceLabel += '<div class="price-sub">+ ' + esc(fmtEur(timeSurcharge)) + ' flat</div>';
+      priceLabel += '<div class="price-sub">' + esc(serviceTimeSurchargeLabel(service)) + ' Zeitaufschlag</div>';
     }
     var rulePills = '';
 	    if ((service.requires || []).length) {
@@ -3346,6 +3388,12 @@ function updateSummary() {
     var rows = usesPreset
       ? '<div class="summary-service"><span class="sname">' + esc(ui.packagePriceLine) + '<small>' + esc(pkg.name) + '</small></span><span class="sval">' + esc(fmtEur(packageBasePerGuest) + ui.perGuest) + '</span></div>'
       : '';
+    function timeSurchargeRow(serviceDef, serviceLabel) {
+      var info = serviceTimeSurchargeInfo(serviceDef);
+      if (!info.total) return '';
+      var pp = state.guests > 0 ? Math.round(info.total / state.guests * 100) / 100 : 0;
+      return '<div class="summary-service"><span class="sname">Zeitaufschlag<small>' + esc(serviceLabel + ' · ' + info.units + ' × ' + info.flat + ' €') + '</small></span><span class="sval">' + esc(fmtEur(pp) + ui.perGuest) + '</span></div>';
+    }
     rows += selected.map(function(service) {
       if (service.packageCovered) {
         var coveredName = service.name + (service.optionName ? ' - ' + service.optionName : '');
@@ -3353,11 +3401,9 @@ function updateSummary() {
       }
       if (service.upgradeFromId) {
         var upgradePp = state.guests > 0 ? Math.round((service.chargeTotal || 0) / state.guests * 100) / 100 : 0;
-        var upgradeTimeSurcharge = serviceTimeSurchargeTotal(findService(service.id));
-        var upgradeLinePp = state.guests > 0 ? Math.round(((service.chargeTotal || 0) + upgradeTimeSurcharge) / state.guests * 100) / 100 : upgradePp;
         var upgradeLabel = ui.upgradeBadge + ' statt ' + service.upgradeFromName;
-        if (upgradeTimeSurcharge > 0) upgradeLabel += ' + ' + fmtEur(upgradeTimeSurcharge) + ' Zeitaufschlag';
-        return '<div class="summary-service"><span class="sname">' + esc(service.name) + '<small>' + esc(upgradeLabel) + '</small></span><span class="sval">' + esc(fmtEur(upgradeLinePp) + ui.perGuest) + '</span></div>';
+        return '<div class="summary-service"><span class="sname">' + esc(service.name) + '<small>' + esc(upgradeLabel) + '</small></span><span class="sval">' + esc(fmtEur(upgradePp) + ui.perGuest) + '</span></div>' +
+          timeSurchargeRow(findService(service.id), service.name);
       }
       var ppContrib = service.priceType === 'flat'
         ? (state.guests > 0 ? Math.round(service.price / state.guests * 100) / 100 : 0)
@@ -3365,12 +3411,9 @@ function updateSummary() {
       var label = service.priceType === 'flat'
         ? fmtEur(service.price) + ' flat'
         : service.price + ' €' + ui.perGuest;
-      var timeSurcharge = serviceTimeSurchargeTotal(findService(service.id));
-      var lineTotal = service.priceType === 'flat' ? service.price + timeSurcharge : service.price * state.guests + timeSurcharge;
-      var linePp = state.guests > 0 ? Math.round(lineTotal / state.guests * 100) / 100 : ppContrib;
       var name = service.name + (service.optionName ? ' - ' + service.optionName : '');
-      if (timeSurcharge > 0) label += ' + ' + fmtEur(timeSurcharge) + ' Zeitaufschlag';
-      return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(fmtEur(linePp) + ui.perGuest) + '</span></div>';
+      return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(fmtEur(ppContrib) + ui.perGuest) + '</span></div>' +
+        timeSurchargeRow(findService(service.id), service.name);
     }).join('');
     if (state.nightSurcharge > 0) {
       var nightPp = state.guests > 0 ? Math.round(state.nightSurcharge / state.guests * 100) / 100 : 0;
@@ -3619,7 +3662,7 @@ function seedDevData() {
     { id: 'pkg_firma', icon: 'building', name: 'Firmenfeier', desc: 'Alles inklusive fur Betriebsausflug oder Weihnachtsfeier.', modules: ['catering', 'bar', 'deco'], occasions: ['Firmenfeier'], active: true },
     { id: 'pkg_geburtstag', icon: 'cake', name: 'Geburtstag', desc: 'Das Rundum-sorglos-Paket fur deinen grossen Tag.', modules: ['catering', 'bar', 'music'], occasions: ['Geburtstag'], active: true },
     { id: 'pkg_hochzeit', icon: 'ring', name: 'Hochzeit', desc: 'Vollständig ausgestattet für den schönsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true },
-    { id: 'pkg_vesper', icon: 'vesper-board', name: 'Tagespaket Vesper', desc: 'Vesper & 1 0,5 l Woinemer Bier inkl. Tischwasser.', modules: ['vesper', 'woinemer_bier_05', 'tischwasser'], occasions: [], packagePricePerGuest: 35, minGuests: 50, allowedWeekdays: ['0', '1', '2', '3', '4', '5'], startTimeMin: '12:00', startTimeMax: '14:00', active: true }
+    { id: 'pkg_vesper', icon: 'vesper-board', name: 'Tagespaket Vesper', desc: 'Unser Tagespaket für entspannte Mittagsveranstaltungen: ein herzhaftes Vesper mit regionalem Charakter, dazu pro Gast ein 0,5 l Woinemer Bier und Tischwasser inklusive. Buchbar ab 50 Gästen, sonntags oder werktags zwischen 12:00 und 14:00 Uhr.', modules: ['vesper', 'woinemer_bier_05', 'tischwasser'], occasions: [], packagePricePerGuest: 35, minGuests: 50, allowedWeekdays: ['0', '1', '2', '3', '4', '5'], startTimeMin: '12:00', startTimeMax: '14:00', active: true }
   ]);
   contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 }
