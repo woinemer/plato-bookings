@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -622,6 +626,9 @@ section{padding:120px 56px;}
   border:1px solid var(--border);border-radius:var(--radius);
   padding:18px;cursor:pointer;transition:all .2s;position:relative;background:#fff;
 }
+.pkg-card.has-image{padding:0;overflow:hidden;}
+.pkg-card.has-image .pkg-card-body{padding:16px 18px 18px;}
+.catalog-img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:linear-gradient(135deg,#d9d0bc 0%,#ede8de 100%);}
 .pkg-card:hover{border-color:var(--gold-line);}
 .pkg-card.selected{border-color:var(--dark);background:var(--cream-2);}
 .pkg-checkmark{
@@ -630,9 +637,11 @@ section{padding:120px 56px;}
   display:none;place-items:center;font-size:12px;font-weight:600;
 }
 .pkg-card.selected .pkg-checkmark{display:grid;}
-.pkg-icon{font-size:24px;margin-bottom:8px;}
+.pkg-icon,.service-icon{width:32px;height:32px;margin-bottom:8px;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pkg-icon svg,.service-icon svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round;}
+.pkg-icon .legacy-icon,.service-icon .legacy-icon{font-size:24px;line-height:1;}
 .pkg-name{font-family:var(--serif);font-size:17px;color:var(--dark);margin-bottom:4px;letter-spacing:-.01em;}
-.pkg-desc{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-bottom:10px;line-height:1.55;}
+.pkg-desc{font-family:var(--serif);font-style:italic;font-size:14px;color:#4f493f;margin-bottom:10px;line-height:1.65;}
 .pkg-desc p{margin:0 0 8px;}
 .pkg-desc p:last-child{margin-bottom:0;}
 .pkg-desc ul{margin:8px 0 8px 18px;padding:0;}
@@ -646,16 +655,31 @@ section{padding:120px 56px;}
   border:1px solid var(--border);border-radius:var(--radius);background:white;
   transition:all .2s;overflow:hidden;
 }
+.service-card.has-image .service-card-media{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:linear-gradient(135deg,#d9d0bc 0%,#ede8de 100%);}
 .service-card:hover{border-color:var(--gold-line);}
 .service-card.selected{border-color:var(--dark);background:var(--cream-2);}
 .service-card.package-covered{border-color:rgba(186,159,93,.4);background:#fffaf0;}
 .service-card.disabled{opacity:1;background:#fff;cursor:pointer;}
 .service-card-header{padding:18px 20px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;}
 .service-card.package-covered .service-card-header{cursor:default;}
-.service-icon{font-size:22px;flex-shrink:0;margin-top:2px;}
+.service-icon{margin-top:2px;margin-bottom:0;}
 .service-info{flex:1;}
 .service-name{font-weight:600;font-size:14px;color:var(--dark);}
-.service-desc{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-top:3px;line-height:1.5;}
+.service-desc{font-family:var(--serif);font-style:italic;font-size:14px;color:#4f493f;margin-top:3px;line-height:1.6;}
+.service-option-panel{padding:0 20px 18px 66px;margin-top:-4px;}
+.service-option-title{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:10px;}
+.service-option-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+.service-option-card{border:1px solid var(--border);border-radius:var(--radius);background:#fff;overflow:hidden;cursor:pointer;transition:border-color .15s,background .15s,transform .15s;position:relative;}
+.service-option-card:hover{border-color:var(--gold-line);transform:translateY(-1px);}
+.service-option-card.selected{border-color:var(--gold);background:var(--gold-soft);}
+.service-option-img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:linear-gradient(135deg,#d9d0bc 0%,#ede8de 100%);}
+.service-option-body{padding:10px 12px;}
+.service-option-name{font-family:var(--serif);font-size:15px;color:var(--dark);line-height:1.25;}
+.service-option-desc{font-size:12px;color:var(--stone);line-height:1.45;margin-top:4px;}
+.service-option-price{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;margin-top:6px;}
+.service-option-check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:var(--night);font-size:13px;font-weight:700;display:none;align-items:center;justify-content:center;}
+.service-option-card.selected .service-option-check{display:flex;}
+.service-option-warning{margin-top:10px;color:var(--red);font-size:12px;font-weight:700;}
 .package-covered-badge{display:inline-flex;margin-top:8px;padding:4px 8px;border-radius:4px;background:rgba(44,42,37,.08);border:1px solid rgba(44,42,37,.12);color:var(--stone);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 .upgrade-badge{display:inline-flex;margin-top:8px;padding:4px 8px;border-radius:4px;background:rgba(76,175,125,.12);border:1px solid rgba(76,175,125,.22);color:#3f8f68;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 .service-price{text-align:right;flex-shrink:0;min-width:80px;}
@@ -1329,6 +1353,8 @@ var UI = {
     upgradeBadge: 'Upgrade',
     packagePriceLine: 'Paketpreis',
     packageSavings: 'Du sparst {amount}/Gast',
+    optionTitle: 'Variante wählen',
+    optionRequired: 'Bitte wähle eine Variante.',
     nightSurcharge: 'Nachtzuschlag',
     nextDay: '(+1)',
     errors: {
@@ -1337,6 +1363,7 @@ var UI = {
       duration: 'Bitte wähle eine Dauer.',
       guests: 'Bitte gib eine Gästezahl im gültigen Bereich ein.',
       occasion: 'Bitte wähle einen Anlass.',
+      serviceOptions: 'Bitte wähle bei allen markierten Modulen eine Variante.',
       fname: 'Bitte Vorname eingeben.',
       lname: 'Bitte Nachname eingeben.',
       email: 'Bitte gültige E-Mail-Adresse eingeben.',
@@ -1442,6 +1469,8 @@ var UI = {
     upgradeBadge: 'Upgrade',
     packagePriceLine: 'Package price',
     packageSavings: 'You save {amount}/guest',
+    optionTitle: 'Choose option',
+    optionRequired: 'Please choose an option.',
     nightSurcharge: 'Night surcharge',
     nextDay: '(next day)',
     errors: {
@@ -1450,6 +1479,7 @@ var UI = {
       duration: 'Please choose a duration.',
       guests: 'Please enter a valid guest count.',
       occasion: 'Please choose an occasion.',
+      serviceOptions: 'Please choose an option for all highlighted modules.',
       fname: 'Please enter a first name.',
       lname: 'Please enter a last name.',
       email: 'Please enter a valid email address.',
@@ -1596,6 +1626,34 @@ function esc(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+var ICON_SVGS = {
+  'beer-premium': '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 10h11v13a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4V10Z"/><path d="M20 13h3.5a3.5 3.5 0 0 1 0 7H20"/><path d="M11 6h7"/><path d="M12 10V6"/><path d="M17 10V6"/></svg>',
+  'vesper-board': '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 17c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10S6 22.5 6 17Z"/><path d="M10 20h12"/><path d="M12 15h8"/><path d="M13 11h6"/></svg>',
+  'livecooking': '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 23h18"/><path d="M9 23l2-9h10l2 9"/><path d="M13 11c-1.5-1.8 1.5-2.8 0-4.5"/><path d="M18 11c-1.5-1.8 1.5-2.8 0-4.5"/><path d="M12 17h8"/></svg>',
+  'vault': '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 26V14a10 10 0 0 1 20 0v12"/><path d="M10 26V14a6 6 0 0 1 12 0v12"/><path d="M5 26h22"/></svg>',
+  'celebration': '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m9 25 4-15 10 10-14 5Z"/><path d="M18 8h.01"/><path d="M23 6h.01"/><path d="M25 13h.01"/><path d="M14 5l1 3"/><path d="M24 20l3 1"/></svg>',
+  utensils: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 5v22"/><path d="M7 5v7a3 3 0 0 0 6 0V5"/><path d="M21 5c-2 2-3 5-3 9h5v13"/></svg>',
+  beer: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 10h11v13a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4V10Z"/><path d="M20 13h3a3 3 0 0 1 0 6h-3"/></svg>',
+  sparkles: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l2.2 7.8L26 14l-7.8 2.2L16 24l-2.2-7.8L6 14l7.8-2.2L16 4Z"/><path d="M25 22l.8 2.2L28 25l-2.2.8L25 28l-.8-2.2L22 25l2.2-.8L25 22Z"/></svg>',
+  music: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M13 22a4 4 0 1 1-2-3.5V7l13-2v15"/><path d="M24 20a4 4 0 1 1-2-3.5"/><path d="M11 11l13-2"/></svg>',
+  building: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 27V8h18v19"/><path d="M11 12h3M18 12h3M11 17h3M18 17h3M11 22h3M18 22h3"/><path d="M5 27h22"/></svg>',
+  cake: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 15h16v12H8z"/><path d="M8 20c2 1.3 4 1.3 6 0s4-1.3 6 0 4 1.3 6 0"/><path d="M16 8v5"/><path d="M14 8c1-2 3-2 4 0"/></svg>',
+  ring: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 10h8l-4 5-4-5Z"/><path d="M9 20a7 7 0 1 0 14 0 7 7 0 0 0-14 0Z"/></svg>',
+  water: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5c4 5 7 9 7 14a7 7 0 0 1-14 0c0-5 3-9 7-14Z"/><path d="M13 22c1.5 1.4 4.5 1.4 6 0"/></svg>'
+};
+
+function renderCatalogIcon(icon) {
+  var key = String(icon || '').trim();
+  if (ICON_SVGS[key]) return ICON_SVGS[key];
+  return '<span class="legacy-icon">' + esc(key) + '</span>';
+}
+
+function renderCatalogImage(url, cls) {
+  var src = String(url || '').trim();
+  if (!src) return '';
+  return '<img class="' + cls + '" alt="" loading="lazy" src="' + esc(src) + '">';
 }
 
 function renderRichText(value) {
@@ -2222,6 +2280,7 @@ function normalizeServices(list) {
       icon: String(service.icon || ''),
       name: String(service.name || ''),
       desc: String(service.desc || ''),
+      imageUrl: String(service.imageUrl || ''),
       lossText: String(service.lossText || ''),
       upsellTargetId: String(service.upsellTargetId || ''),
       upsellText: String(service.upsellText || ''),
@@ -2229,6 +2288,19 @@ function normalizeServices(list) {
       pricePerGuest: Number(service.pricePerGuest || 0),
       budgetMin: Number(service.budgetMin || 0),
       budgetMax: Number(service.budgetMax || 0),
+      surchargeStartTime: String(service.surchargeStartTime || ''),
+      surchargeFlatPerStartedHour: Number(service.surchargeFlatPerStartedHour || 0),
+      options: Array.isArray(service.options) ? service.options.map(function(option) {
+        return {
+          optionId: String(option.optionId || ''),
+          name: String(option.name || ''),
+          desc: String(option.desc || ''),
+          imageUrl: String(option.imageUrl || ''),
+          priceOverride: option.priceOverride === '' || option.priceOverride == null ? '' : Number(option.priceOverride || 0),
+          linkedModules: Array.isArray(option.linkedModules) ? option.linkedModules.map(String) : [],
+          active: option.active !== false
+        };
+      }).filter(function(option) { return option.optionId && option.active !== false; }) : [],
       active: service.active !== false,
       requires: Array.isArray(service.requires) ? service.requires.map(String) : [],
       excludes: Array.isArray(service.excludes) ? service.excludes.map(String) : [],
@@ -2271,9 +2343,16 @@ function normalizePackages(list) {
       icon: String(pkg.icon || ''),
       name: String(pkg.name || ''),
       desc: String(pkg.desc || ''),
+      imageUrl: String(pkg.imageUrl || ''),
       modules: Array.isArray(pkg.modules) ? pkg.modules.map(String) : [],
       occasions: Array.isArray(pkg.occasions) ? pkg.occasions.map(String) : [],
       packagePricePerGuest: Number(pkg.packagePricePerGuest || 0),
+      minGuests: Number(pkg.minGuests || 0),
+      allowedWeekdays: Array.isArray(pkg.allowedWeekdays)
+        ? pkg.allowedWeekdays.map(String)
+        : String(pkg.allowedWeekdays || '').split(',').map(function(day) { return day.trim(); }).filter(Boolean),
+      startTimeMin: String(pkg.startTimeMin || ''),
+      startTimeMax: String(pkg.startTimeMax || ''),
       active: pkg.active !== false,
       allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : []
     };
@@ -2285,6 +2364,39 @@ function defaultServicePrice(service) {
     return service.pricePerGuest || service.budgetMin || 0;
   }
   return service.pricePerGuest || 0;
+}
+
+function findServiceOption(service, optionId) {
+  var id = String(optionId || '');
+  if (!service || !id) return null;
+  return (service.options || []).find(function(option) {
+    return option.optionId === id && option.active !== false;
+  }) || null;
+}
+
+function selectedServiceOption(service, selectedState) {
+  return findServiceOption(service, selectedState && selectedState.optionId);
+}
+
+function serviceOptionBasePrice(service, selectedState, fallbackPrice) {
+  var option = selectedServiceOption(service, selectedState);
+  if (option && option.priceOverride !== '' && option.priceOverride != null && !isNaN(Number(option.priceOverride))) {
+    return Number(option.priceOverride);
+  }
+  return fallbackPrice == null ? defaultServicePrice(service) : fallbackPrice;
+}
+
+function serviceTimeSurchargeTotal(service) {
+  var flat = Number(service && service.surchargeFlatPerStartedHour || 0);
+  if (!flat || !service.surchargeStartTime || !state.selectedTime || !state.duration) return 0;
+  var startMinutes = toMinutes(state.selectedTime);
+  var threshold = toMinutes(service.surchargeStartTime);
+  if (threshold == null || isNaN(threshold)) return 0;
+  if (threshold <= startMinutes) threshold += 1440;
+  var endMinutes = startMinutes + state.duration * 60;
+  var overMinutes = endMinutes - threshold;
+  if (overMinutes <= 0) return 0;
+  return Math.ceil(overMinutes / 60) * flat;
 }
 
 function uniqueIds(ids) {
@@ -2307,6 +2419,30 @@ function packagePresetPrice(pkg) {
 
 function packageUsesPreset(pkg) {
   return packagePresetPrice(pkg) > 0;
+}
+
+function packageRuleMessages(pkg) {
+  var messages = [];
+  if (!pkg) return messages;
+  if (pkg.minGuests && state.guests < pkg.minGuests) {
+    messages.push('ab ' + pkg.minGuests + ' Gäste');
+  }
+  if (pkg.allowedWeekdays && pkg.allowedWeekdays.length && state.selectedDate) {
+    var date = parseDateKey(state.selectedDate);
+    if (date && pkg.allowedWeekdays.indexOf(String(date.getDay())) === -1) {
+      messages.push('nicht an diesem Wochentag');
+    }
+  }
+  if (state.selectedTime) {
+    var start = toMinutes(state.selectedTime);
+    if (pkg.startTimeMin && start < toMinutes(pkg.startTimeMin)) messages.push('ab ' + pkg.startTimeMin + ' Uhr');
+    if (pkg.startTimeMax && start > toMinutes(pkg.startTimeMax)) messages.push('bis ' + pkg.startTimeMax + ' Uhr Startzeit');
+  }
+  return messages;
+}
+
+function isPackageBookable(pkg) {
+  return packageRuleMessages(pkg).length === 0;
 }
 
 function currentPackage() {
@@ -2447,10 +2583,13 @@ function commitServiceSelection(selectedIds, preservePackage, coveredIds, upgrad
     var packageCovered = !!coveredIds[service.id];
     var upgradeFromId = upgradeFromIds[service.id] || '';
     var upgradeFrom = upgradeFromId ? findService(upgradeFromId) : null;
-    var price = defaultServicePrice(service);
+    var optionId = existing && findServiceOption(service, existing.optionId) ? existing.optionId : '';
+    var option = findServiceOption(service, optionId);
+    var price = serviceOptionBasePrice(service, { optionId: optionId }, defaultServicePrice(service));
     var chargeTotal = null;
     if (packageCovered) price = 0;
     else if (existing && existing.price != null && !existing.packageCovered) price = Number(existing.price);
+    if (option && option.priceOverride !== '' && option.priceOverride != null) price = Number(option.priceOverride);
     if (upgradeFrom) {
       chargeTotal = Math.max(0, serviceComparableTotal(service) - serviceComparableTotal(upgradeFrom));
       price = service.priceType === 'flat' ? chargeTotal : (state.guests > 0 ? Math.round(chargeTotal / state.guests * 100) / 100 : 0);
@@ -2460,9 +2599,13 @@ function commitServiceSelection(selectedIds, preservePackage, coveredIds, upgrad
       icon: service.icon,
       name: service.name,
       desc: service.desc,
+      imageUrl: service.imageUrl,
       priceType: service.priceType,
       price: price,
       regularPrice: defaultServicePrice(service),
+      timeSurchargeTotal: packageCovered ? 0 : serviceTimeSurchargeTotal(service),
+      optionId: optionId,
+      optionName: option ? option.name : '',
       upsellTargetId: service.upsellTargetId,
       upsellText: service.upsellText,
       packageCovered: packageCovered,
@@ -2510,7 +2653,7 @@ function packageEstimate(pkg) {
   var total = getActiveServices().reduce(function(sum, service) {
     if (!selectedIds[service.id]) return sum;
     var price = defaultServicePrice(service);
-    return sum + (service.priceType === 'flat' ? price : price * state.guests);
+    return sum + (service.priceType === 'flat' ? price : price * state.guests) + serviceTimeSurchargeTotal(service);
   }, 0);
   return total;
 }
@@ -2529,7 +2672,7 @@ function isAvailableForSpace(item) {
 function reconcileAvailabilitySelection() {
   var changed = false;
   var pkg = currentPackage();
-  if (pkg && !isAvailableForSpace(pkg)) {
+  if (pkg && (!isAvailableForSpace(pkg) || !isPackageBookable(pkg))) {
     state.selectedPackage = '';
     pkg = null;
     changed = true;
@@ -2561,6 +2704,7 @@ function renderPackages() {
   var selectedOccasion = state.occasion || '';
   var filtered = getActivePackages().filter(function(pkg) {
     if (!isAvailableForSpace(pkg)) return false;
+    if (!isPackageBookable(pkg)) return false;
     if (!selectedOccasion) return true;
     return !pkg.occasions.length || pkg.occasions.indexOf(selectedOccasion) !== -1;
   });
@@ -2591,14 +2735,18 @@ function renderPackages() {
     var badge = (popularId && pkg.id === popularId)
       ? '<div class="pkg-popular-badge">' + esc(getContentValue(state.lang === 'en' ? 'popularBadgeTextEn' : 'popularBadgeTextDe') || 'Beliebt') + '</div>'
       : '';
-    html += '<div class="pkg-card' + (selected ? ' selected' : '') + '" data-package-id="' + esc(pkg.id) + '">' +
+    var media = renderCatalogImage(pkg.imageUrl, 'catalog-img');
+    html += '<div class="pkg-card' + (selected ? ' selected' : '') + (media ? ' has-image' : '') + '" data-package-id="' + esc(pkg.id) + '">' +
       badge +
       '<div class="pkg-checkmark">✓</div>' +
-      '<div class="pkg-icon">' + esc(pkg.icon) + '</div>' +
-      '<div class="pkg-name">' + esc(pkg.name) + '</div>' +
-      '<div class="pkg-desc">' + renderRichText(pkg.desc) + '</div>' +
-      '<div class="pkg-modules">' + tags + '</div>' +
-      '<div class="price-preview"><strong>' + esc(estimate) + '</strong></div>' +
+      media +
+      '<div class="pkg-card-body">' +
+        '<div class="pkg-icon">' + renderCatalogIcon(pkg.icon) + '</div>' +
+        '<div class="pkg-name">' + esc(pkg.name) + '</div>' +
+        '<div class="pkg-desc">' + renderRichText(pkg.desc) + '</div>' +
+        '<div class="pkg-modules">' + tags + '</div>' +
+        '<div class="price-preview"><strong>' + esc(estimate) + '</strong></div>' +
+      '</div>' +
       '</div>';
   });
   html += '</div>';
@@ -2633,7 +2781,7 @@ function selectPackage(pkgId) {
     return;
   }
   var pkg = findPackage(pkgId);
-  if (!pkg) return;
+  if (!pkg || !isPackageBookable(pkg)) return;
   var selectedIds = {};
   packageChargeableIds(pkg).forEach(function(moduleId) {
     if (findService(moduleId)) {
@@ -2747,6 +2895,45 @@ function updateBudget(serviceId, value) {
   updateSummary();
 }
 
+function selectServiceOption(serviceId, optionId) {
+  var service = findService(serviceId);
+  var option = findServiceOption(service, optionId);
+  if (!service || !option || !state.services[serviceId]) return;
+  state.services[serviceId].optionId = option.optionId;
+  state.services[serviceId].optionName = option.name;
+  if (option.priceOverride !== '' && option.priceOverride != null) {
+    state.services[serviceId].price = Number(option.priceOverride) || 0;
+  } else if (service.priceType !== 'budget') {
+    state.services[serviceId].price = defaultServicePrice(service);
+  }
+
+  var selectedIds = {};
+  Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
+  (option.linkedModules || []).forEach(function(id) {
+    if (findService(id)) selectedIds[id] = true;
+  });
+  var packageMaps = currentPackageMaps();
+  if (packageMaps.pkg) {
+    packageChargeableIds(packageMaps.pkg).forEach(function(moduleId) {
+      if (findService(moduleId)) selectedIds[moduleId] = true;
+    });
+  }
+  lastRuleMessages = [];
+  normalizeSelectedIds(selectedIds, lastRuleMessages, serviceId);
+  var meta = buildSelectionMeta(selectedIds);
+  var selectedOptionId = state.services[serviceId].optionId;
+  commitServiceSelection(selectedIds, !!packageMaps.pkg, meta.covered, meta.upgrades);
+  if (state.services[serviceId]) {
+    state.services[serviceId].optionId = selectedOptionId;
+    state.services[serviceId].optionName = option.name;
+    if (option.priceOverride !== '' && option.priceOverride != null) state.services[serviceId].price = Number(option.priceOverride) || 0;
+  }
+  renderPackages();
+  renderServiceList();
+  renderRuleMessages();
+  updateSummary();
+}
+
 function getUpsellSourceForTarget(target) {
   if (!target || getContentValue('upsellEnabled') !== 'true' || state.services[target.id]) return null;
   return selectedServicesInOrder().map(function(selected) {
@@ -2794,16 +2981,21 @@ function renderServiceList() {
     var packageCovered = !!(selectedState && selectedState.packageCovered);
     var upgradeFrom = selectedState && selectedState.upgradeFromName;
     var disabled = disabledByConflict(service);
+    var selectedOption = selected ? selectedServiceOption(service, selectedState) : null;
     var currentPrice = selected ? Number(selectedState.price) : defaultServicePrice(service);
+    var timeSurcharge = selected && !packageCovered ? serviceTimeSurchargeTotal(service) : 0;
     var priceLabel = packageCovered
       ? '<div class="price-val price-old">' + esc(fmtEur(serviceSavingsPerGuest(service, state.guests))) + '</div><div class="price-sub">' + esc(ui.packageCoveredBadge) + '</div>'
       : upgradeFrom
       ? '<div class="price-val">' + esc(fmtEur(currentPrice)) + '</div><div class="price-sub">' + esc(ui.upgradeBadge) + '</div>'
       : service.priceType === 'flat'
-      ? '<div class="price-val">' + esc(String(service.pricePerGuest)) + ' €</div><div class="price-sub">Flat</div>'
+      ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">Flat</div>'
       : service.priceType === 'budget'
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
-        : '<div class="price-val">' + esc(String(service.pricePerGuest)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>';
+        : '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>';
+    if (timeSurcharge > 0) {
+      priceLabel += '<div class="price-sub">+ ' + esc(fmtEur(timeSurcharge)) + ' flat</div>';
+    }
     var rulePills = '';
 	    if ((service.requires || []).length) {
 	      rulePills = '<div class="rule-row">';
@@ -2822,10 +3014,38 @@ function renderServiceList() {
         '</div>';
 	    }
 	    var moduleUpsell = renderModuleUpsell(service);
-		    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + '">' +
+	    var media = renderCatalogImage(service.imageUrl, 'service-card-media');
+	    var optionPanel = '';
+		    if (selected && (service.options || []).length) {
+	      optionPanel = '<div class="service-option-panel">' +
+	        '<div class="service-option-title">' + esc(ui.optionTitle) + '</div>' +
+	        '<div class="service-option-grid">' +
+	        service.options.map(function(option) {
+	          var optSelected = selectedState && selectedState.optionId === option.optionId;
+	          var optImg = renderCatalogImage(option.imageUrl, 'service-option-img');
+	          var optPrice = option.priceOverride === '' || option.priceOverride == null
+	            ? ''
+	            : '<div class="service-option-price">' + esc(fmtEur(option.priceOverride) + ui.perGuest) + '</div>';
+	          return '<div class="service-option-card' + (optSelected ? ' selected' : '') + '" data-service-option="' + esc(service.id) + '" data-option-id="' + esc(option.optionId) + '">' +
+	            optImg +
+	            '<div class="service-option-body">' +
+	              '<div class="service-option-name">' + esc(option.name) + '</div>' +
+	              (option.desc ? '<div class="service-option-desc">' + esc(option.desc) + '</div>' : '') +
+	              optPrice +
+	            '</div>' +
+	            '<div class="service-option-check">✓</div>' +
+	            '</div>';
+	        }).join('') +
+	        '</div>' +
+	        (!selectedOption ? '<div class="service-option-warning">' + esc(ui.optionRequired) + '</div>' : '') +
+	        '</div>';
+	    }
+		    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + (media ? ' has-image' : '') + '">' +
+	      media +
 	      '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
-	      '<div class="service-icon">' + esc(service.icon) + '</div>' +
+	      '<div class="service-icon">' + renderCatalogIcon(service.icon) + '</div>' +
 	      '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
+	      (selectedOption ? '<div class="upgrade-badge">' + esc(selectedOption.name) + '</div>' : '') +
 	      (packageCovered ? '<div class="package-covered-badge">' + esc(ui.packageCoveredBadge) + '</div>' : '') +
 	      (upgradeFrom ? '<div class="upgrade-badge">' + esc(ui.upgradeBadge + ' statt ' + upgradeFrom) + '</div>' : '') +
 	      (!selected && getContentValue('lossFramingEnabled') === 'true' && service.lossText ? '<div class="service-loss-text">' + esc(service.lossText) + '</div>' : '') +
@@ -2833,6 +3053,7 @@ function renderServiceList() {
 	      '<div class="service-price">' + priceLabel + moduleUpsell + '</div>' +
 	      '<div class="service-checkbox">' + (selected ? '✓' : '') + '</div>' +
 	      '</div>' +
+	      optionPanel +
 	      slider +
 	      '</div>';
 	  }).join('');
@@ -2851,6 +3072,12 @@ function renderServiceList() {
 	    btn.addEventListener('click', function(event) {
 	      event.stopPropagation();
 	      selectUpsellTarget(btn.getAttribute('data-upsell-target'));
+	    });
+	  });
+	  document.querySelectorAll('[data-service-option]').forEach(function(card) {
+	    card.addEventListener('click', function(event) {
+	      event.stopPropagation();
+	      selectServiceOption(card.getAttribute('data-service-option'), card.getAttribute('data-option-id'));
 	    });
 	  });
 	}
@@ -2913,7 +3140,10 @@ function selectDate(dateKey) {
   if (meta.past || meta.tooSoon || meta.weekdayBlocked) return;
   state.selectedDate = dateKey;
   state.waitlist = meta.waitlistable;
+  reconcileAvailabilitySelection();
   renderCalendar();
+  renderPackages();
+  renderServiceList();
   updateSummary();
 }
 
@@ -2980,6 +3210,9 @@ function onTimeChange() {
     state.nightSurcharge = 0;
     summary.style.display = 'none';
     nightBox.style.display = 'none';
+    reconcileAvailabilitySelection();
+    renderPackages();
+    renderServiceList();
     updateSummary();
     return;
   }
@@ -3007,7 +3240,9 @@ function onTimeChange() {
   } else {
     nightBox.style.display = 'none';
   }
+  reconcileAvailabilitySelection();
   renderPackages();
+  renderServiceList();
   updateSummary();
 }
 
@@ -3080,7 +3315,7 @@ function updateSummary() {
     if (pkg) {
       usesPreset = packageUsesPreset(pkg);
       packageBasePerGuest = packagePresetPrice(pkg);
-      badge = '<div class="sum-pkg-badge">' + esc(pkg.icon + ' ' + pkg.name) + '</div>';
+      badge = '<div class="sum-pkg-badge">' + esc(pkg.name) + '</div>';
     }
   }
   if (!selected.length && !state.nightSurcharge) {
@@ -3092,11 +3327,16 @@ function updateSummary() {
       : '';
     rows += selected.map(function(service) {
       if (service.packageCovered) {
-        return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(ui.packageCoveredBadge + ' · regulär ' + fmtEur(serviceSavingsPerGuest(service, state.guests)) + ui.perGuest) + '</small></span><span class="sval">' + esc(ui.packageCoveredBadge) + '</span></div>';
+        var coveredName = service.name + (service.optionName ? ' - ' + service.optionName : '');
+        return '<div class="summary-service"><span class="sname">' + esc(coveredName) + '<small>' + esc(ui.packageCoveredBadge + ' · regulär ' + fmtEur(serviceSavingsPerGuest(service, state.guests)) + ui.perGuest) + '</small></span><span class="sval">' + esc(ui.packageCoveredBadge) + '</span></div>';
       }
       if (service.upgradeFromId) {
         var upgradePp = state.guests > 0 ? Math.round((service.chargeTotal || 0) / state.guests * 100) / 100 : 0;
-        return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(ui.upgradeBadge + ' statt ' + service.upgradeFromName) + '</small></span><span class="sval">' + esc(fmtEur(upgradePp) + ui.perGuest) + '</span></div>';
+        var upgradeTimeSurcharge = serviceTimeSurchargeTotal(findService(service.id));
+        var upgradeLinePp = state.guests > 0 ? Math.round(((service.chargeTotal || 0) + upgradeTimeSurcharge) / state.guests * 100) / 100 : upgradePp;
+        var upgradeLabel = ui.upgradeBadge + ' statt ' + service.upgradeFromName;
+        if (upgradeTimeSurcharge > 0) upgradeLabel += ' + ' + fmtEur(upgradeTimeSurcharge) + ' Zeitaufschlag';
+        return '<div class="summary-service"><span class="sname">' + esc(service.name) + '<small>' + esc(upgradeLabel) + '</small></span><span class="sval">' + esc(fmtEur(upgradeLinePp) + ui.perGuest) + '</span></div>';
       }
       var ppContrib = service.priceType === 'flat'
         ? (state.guests > 0 ? Math.round(service.price / state.guests * 100) / 100 : 0)
@@ -3104,7 +3344,12 @@ function updateSummary() {
       var label = service.priceType === 'flat'
         ? fmtEur(service.price) + ' flat'
         : service.price + ' €' + ui.perGuest;
-      return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(fmtEur(ppContrib) + ui.perGuest) + '</span></div>';
+      var timeSurcharge = serviceTimeSurchargeTotal(findService(service.id));
+      var lineTotal = service.priceType === 'flat' ? service.price + timeSurcharge : service.price * state.guests + timeSurcharge;
+      var linePp = state.guests > 0 ? Math.round(lineTotal / state.guests * 100) / 100 : ppContrib;
+      var name = service.name + (service.optionName ? ' - ' + service.optionName : '');
+      if (timeSurcharge > 0) label += ' + ' + fmtEur(timeSurcharge) + ' Zeitaufschlag';
+      return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(fmtEur(linePp) + ui.perGuest) + '</span></div>';
     }).join('');
     if (state.nightSurcharge > 0) {
       var nightPp = state.guests > 0 ? Math.round(state.nightSurcharge / state.guests * 100) / 100 : 0;
@@ -3119,8 +3364,8 @@ function updateSummary() {
     if (service.packageCovered) {
       return sum;
     }
-    if (service.chargeTotal != null) return sum + service.chargeTotal;
-    return sum + (service.priceType === 'flat' ? service.price : service.price * state.guests);
+    if (service.chargeTotal != null) return sum + service.chargeTotal + serviceTimeSurchargeTotal(findService(service.id));
+    return sum + (service.priceType === 'flat' ? service.price : service.price * state.guests) + serviceTimeSurchargeTotal(findService(service.id));
   }, usesPreset ? packageBasePerGuest * state.guests : 0) + state.nightSurcharge;
   var perPerson = state.guests > 0 && total > 0 ? Math.round(total / state.guests * 100) / 100 : 0;
   document.getElementById('sum-total').textContent = perPerson > 0 ? fmtEur(perPerson) + ui.perGuest : '– €/Gast';
@@ -3140,6 +3385,9 @@ function goStep(step) {
   if (step > 2 && state.currentStep === 2) {
     if (!validateGuestCount()) return;
     if (!state.occasion) { showFormNotice(ui.errors.occasion, 2); return; }
+  }
+  if (step > 3 && state.currentStep === 3) {
+    if (!validateRequiredServiceOptions()) { showFormNotice(ui.errors.serviceOptions, 3); return; }
   }
   clearFormNotice();
   state.currentStep = step;
@@ -3243,6 +3491,13 @@ function validateContactFields() {
   return valid;
 }
 
+function validateRequiredServiceOptions() {
+  return selectedServicesInOrder().every(function(selected) {
+    var service = findService(selected.id);
+    return !service || !(service.options || []).length || !!findServiceOption(service, selected.optionId);
+  });
+}
+
 function buildSubmitPayload() {
   return {
     date: state.selectedDate,
@@ -3254,8 +3509,12 @@ function buildSubmitPayload() {
     occasionNote: document.getElementById('occasionNote').value.trim(),
     selectedPackage: state.selectedPackage,
     services: selectedServicesInOrder().map(function(service) {
-      return { id: service.id, price: service.price };
+      return { id: service.id, price: service.price, optionId: service.optionId || '' };
     }),
+    serviceOptions: selectedServicesInOrder().reduce(function(map, service) {
+      if (service.optionId) map[service.id] = service.optionId;
+      return map;
+    }, {}),
     fname: document.getElementById('fname').value.trim(),
     lname: document.getElementById('lname').value.trim(),
     email: document.getElementById('email').value.trim(),
@@ -3282,6 +3541,7 @@ function submitBooking() {
   if (!state.duration) { showFormNotice(ui.errors.duration, 1); return; }
   if (!validateGuestCount()) return;
   if (!state.occasion) { showFormNotice(ui.errors.occasion, 2); return; }
+  if (!validateRequiredServiceOptions()) { showFormNotice(ui.errors.serviceOptions, 3); return; }
   if (!validateContactFields()) { showFormNotice(state.lang === 'en' ? 'Please complete the highlighted contact fields.' : 'Bitte fülle die markierten Kontaktfelder aus.', 4); return; }
   clearFormNotice();
 
@@ -3321,15 +3581,24 @@ function submitBooking() {
 
 function seedDevData() {
   services = normalizeServices([
-    { id: 'catering', icon: '🍽️', name: 'Catering', desc: 'Buffet & Menü aus unserer Küche', priceType: 'fix', pricePerGuest: 28, budgetMin: 15, budgetMax: 60, requires: [], excludes: [] },
-    { id: 'bar', icon: '🍺', name: 'Bar-Paket', desc: 'Getränke-Flatrate inkl. Woinemer-Biere', priceType: 'fix', pricePerGuest: 22, budgetMin: 10, budgetMax: 40, requires: [], excludes: [] },
-    { id: 'deco', icon: '✨', name: 'Dekoration', desc: 'Tischdeko, Blumen & Beleuchtung', priceType: 'budget', pricePerGuest: 8, budgetMin: 5, budgetMax: 25, requires: [], excludes: [] },
-    { id: 'music', icon: '🎵', name: 'Musik / DJ', desc: 'DJ & Soundanlage fur den Abend', priceType: 'fix', pricePerGuest: 12, budgetMin: 8, budgetMax: 30, requires: [], excludes: [] }
+    { id: 'catering', icon: 'utensils', name: 'Catering', desc: 'Buffet & Menü aus unserer Küche', priceType: 'fix', pricePerGuest: 28, budgetMin: 15, budgetMax: 60, requires: [], excludes: [] },
+    { id: 'bar', icon: 'beer-premium', name: 'Bar-Paket', desc: 'Getränke-Flatrate inkl. Woinemer-Biere', priceType: 'fix', pricePerGuest: 22, budgetMin: 10, budgetMax: 40, surchargeStartTime: '00:30', surchargeFlatPerStartedHour: 200, requires: [], excludes: [] },
+    { id: 'deco', icon: 'sparkles', name: 'Dekoration', desc: 'Tischdeko, Blumen & Beleuchtung', priceType: 'budget', pricePerGuest: 8, budgetMin: 5, budgetMax: 25, requires: [], excludes: [] },
+    { id: 'music', icon: 'music', name: 'Musik / DJ', desc: 'DJ & Soundanlage fur den Abend', priceType: 'fix', pricePerGuest: 12, budgetMin: 8, budgetMax: 30, requires: [], excludes: [] },
+    { id: 'livecooking', icon: 'livecooking', name: 'Livecooking', desc: 'Frisch zubereitet vor Ort', priceType: 'fix', pricePerGuest: 39, budgetMin: 0, budgetMax: 999, requires: [], excludes: [], options: [
+      { optionId: 'klassisch', name: 'Klassisch', desc: 'Unsere Livecooking-Klassiker', priceOverride: '', linkedModules: [] },
+      { optionId: 'premium', name: 'Premium', desc: 'Erweitertes Angebot', priceOverride: 45, linkedModules: [] },
+      { optionId: 'vegetarisch', name: 'Vegetarisch', desc: 'Vegetarische Variante', priceOverride: '', linkedModules: [] }
+    ] },
+    { id: 'vesper', icon: 'vesper-board', name: 'Vesper', desc: 'Vesperbrett mit regionalen Spezialitäten', priceType: 'fix', pricePerGuest: 35, budgetMin: 0, budgetMax: 999, requires: [], excludes: [] },
+    { id: 'woinemer_bier_05', icon: 'beer-premium', name: '0,5 l Woinemer Bier', desc: 'Ein Woinemer Bier pro Gast', priceType: 'fix', pricePerGuest: 0, budgetMin: 0, budgetMax: 999, requires: [], excludes: [] },
+    { id: 'tischwasser', icon: 'water', name: 'Tischwasser', desc: 'Tischwasser für die Gruppe', priceType: 'fix', pricePerGuest: 0, budgetMin: 0, budgetMax: 999, requires: [], excludes: [] }
   ]);
   packages = normalizePackages([
-    { id: 'pkg_firma', icon: '🏢', name: 'Firmenfeier', desc: 'Alles inklusive fur Betriebsausflug oder Weihnachtsfeier.', modules: ['catering', 'bar', 'deco'], occasions: ['Firmenfeier'], active: true },
-    { id: 'pkg_geburtstag', icon: '🎂', name: 'Geburtstag', desc: 'Das Rundum-sorglos-Paket fur deinen grossen Tag.', modules: ['catering', 'bar', 'music'], occasions: ['Geburtstag'], active: true },
-    { id: 'pkg_hochzeit', icon: '💍', name: 'Hochzeit', desc: 'Vollständig ausgestattet für den schönsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true }
+    { id: 'pkg_firma', icon: 'building', name: 'Firmenfeier', desc: 'Alles inklusive fur Betriebsausflug oder Weihnachtsfeier.', modules: ['catering', 'bar', 'deco'], occasions: ['Firmenfeier'], active: true },
+    { id: 'pkg_geburtstag', icon: 'cake', name: 'Geburtstag', desc: 'Das Rundum-sorglos-Paket fur deinen grossen Tag.', modules: ['catering', 'bar', 'music'], occasions: ['Geburtstag'], active: true },
+    { id: 'pkg_hochzeit', icon: 'ring', name: 'Hochzeit', desc: 'Vollständig ausgestattet für den schönsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true },
+    { id: 'pkg_vesper', icon: 'vesper-board', name: 'Tagespaket Vesper', desc: 'Vesper & 1 0,5 l Woinemer Bier inkl. Tischwasser.', modules: ['vesper', 'woinemer_bier_05', 'tischwasser'], occasions: [], packagePricePerGuest: 35, minGuests: 50, allowedWeekdays: ['0', '1', '2', '3', '4', '5'], startTimeMin: '12:00', startTimeMax: '14:00', active: true }
   ]);
   contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 }
