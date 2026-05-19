@@ -46,6 +46,12 @@ body{
   line-height:1.55;
   -webkit-font-smoothing:antialiased;
 }
+body.booting #stepperBlock,
+body.booting #mainLayout,
+body.maintenance-active #stepperBlock,
+body.maintenance-active #mainLayout{display:none!important;}
+body.public-ready #bootPanel,
+body.maintenance-active #bootPanel{display:none!important;}
 img{display:block;max-width:100%;}
 button{font-family:inherit;}
 a{color:inherit;}
@@ -484,7 +490,12 @@ section{padding:120px 56px;}
 .newsletter-pdf-link[hidden]{display:none!important;}
 .newsletter-pdf-link a{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:999px;background:rgba(186,159,93,.15);border:1px solid rgba(186,159,93,.4);color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s;}
 .newsletter-pdf-link a:hover{background:rgba(186,159,93,.25);}
-.service-loss-text{font-size:11px;color:rgba(186,159,93,.85);font-style:italic;margin-top:3px;line-height:1.4;}
+.service-loss-text{margin-top:10px;padding:10px 12px;border-radius:var(--radius);background:rgba(186,159,93,.12);border:1px solid rgba(186,159,93,.28);color:#6b5430;font-size:12px;font-weight:600;line-height:1.45;}
+.module-upsell-card{margin:0 18px 16px 66px;padding:14px 16px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);box-shadow:0 8px 22px -20px rgba(54,46,38,.45);}
+.module-upsell-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+.module-upsell-text{font-size:13px;color:var(--stone);line-height:1.45;margin-bottom:10px;}
+.module-upsell-btn{border:0;border-radius:999px;background:var(--gold);color:#fff;padding:9px 14px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+.module-upsell-btn:hover{background:var(--gold-dark);}
 .upsell-prompt{margin-top:12px;padding:12px 16px;border-radius:var(--radius);background:rgba(186,159,93,.1);border:1px solid rgba(186,159,93,.3);font-size:12px;color:var(--stone);line-height:1.5;}
 .upsell-prompt[hidden]{display:none!important;}
 .upsell-prompt strong{color:var(--gold);}
@@ -755,6 +766,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .maintenance-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:42px 34px;box-shadow:0 18px 50px -36px rgba(26,24,20,.45);}
 .maintenance-box h3{font-family:var(--serif);font-size:34px;font-weight:400;color:var(--dark);letter-spacing:-.01em;margin-bottom:12px;}
 .maintenance-box p{font-family:var(--serif);font-style:italic;color:var(--stone);font-size:17px;line-height:1.65;text-wrap:pretty;}
+.boot-panel{max-width:680px;margin:0 auto;padding:72px 36px 96px;text-align:center;}
+.boot-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:34px;box-shadow:0 18px 50px -36px rgba(26,24,20,.45);}
+.boot-spinner{width:36px;height:36px;margin:0 auto 16px;border:2px solid rgba(186,159,93,.18);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+.boot-box p{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--stone);}
 
 /* Buttons */
 .btn-primary{
@@ -930,7 +945,7 @@ footer{
 html.iframe-mode .hero { min-height: 0; }
 </style>
 </head>
-<body>
+<body class="booting">
 
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
@@ -961,6 +976,13 @@ html.iframe-mode .hero { min-height: 0; }
     <div class="maintenance-box">
       <h3 id="maintenanceTitle">Wir sind gleich wieder da.</h3>
       <p id="maintenanceMessage">Das Buchungstool wird gerade aktualisiert. Bitte versuche es später erneut.</p>
+    </div>
+  </div>
+
+  <div class="boot-panel" id="bootPanel">
+    <div class="boot-box">
+      <div class="boot-spinner"></div>
+      <p>Buchungstool wird geprüft...</p>
     </div>
   </div>
 
@@ -1503,7 +1525,7 @@ var state = {
   guests: 50,
   occasion: null,
   selectedPackage: '',
-  newsletter: false,
+  newsletter: true,
   services: {},
   selectedSpaceId: '',
   consultationRequested: false
@@ -2027,6 +2049,8 @@ function applyMaintenanceMode() {
   document.getElementById('maintenanceTitle').textContent = title;
   document.getElementById('maintenanceMessage').textContent = msg;
   panel.hidden = !active;
+  document.body.classList.toggle('maintenance-active', active);
+  document.body.classList.toggle('public-ready', !active && !document.body.classList.contains('booting'));
   stepper.style.display = active ? 'none' : '';
   layout.style.display = active ? 'none' : '';
   if (success && active) success.classList.remove('active');
@@ -2129,6 +2153,7 @@ function applyUiText() {
   renderServiceList();
   renderSpacesPanel();
   updateSmallGroupPanel();
+  renderNewsletterState();
   updateSummary();
 }
 
@@ -2196,6 +2221,8 @@ function normalizeServices(list) {
       name: String(service.name || ''),
       desc: String(service.desc || ''),
       lossText: String(service.lossText || ''),
+      upsellTargetId: String(service.upsellTargetId || ''),
+      upsellText: String(service.upsellText || ''),
       priceType: String(service.priceType || 'fix'),
       pricePerGuest: Number(service.pricePerGuest || 0),
       budgetMin: Number(service.budgetMin || 0),
@@ -2318,13 +2345,22 @@ function serviceSavingsPerGuest(service, guests) {
   return regular;
 }
 
+function serviceRegularValuePerGuest(service, guests) {
+  if (!service) return 0;
+  var regular = defaultServicePrice(service);
+  return service.priceType === 'flat' ? (guests > 0 ? Math.round(regular / guests * 100) / 100 : 0) : regular;
+}
+
 function packageSavingsPerGuest(pkg) {
   if (!packageUsesPreset(pkg)) return 0;
-  var regularPackagePp = packageChargeableIds(pkg).reduce(function(sum, id) {
-    var service = findService(id);
-    return service ? sum + serviceSavingsPerGuest(service, state.guests) : sum;
+  var selected = selectedServicesInOrder();
+  var comparableRegularPp = selected.reduce(function(sum, service) {
+    if (service.packageCovered || service.upgradeFromId) {
+      return sum + serviceRegularValuePerGuest(findService(service.id), state.guests);
+    }
+    return sum;
   }, 0);
-  return Math.max(0, regularPackagePp - packagePresetPrice(pkg));
+  return Math.max(0, comparableRegularPp - packagePresetPrice(pkg));
 }
 
 function pushRuleNotice(list, text) {
@@ -2394,6 +2430,8 @@ function commitServiceSelection(selectedIds, preservePackage, coveredIds, upgrad
       priceType: service.priceType,
       price: price,
       regularPrice: defaultServicePrice(service),
+      upsellTargetId: service.upsellTargetId,
+      upsellText: service.upsellText,
       packageCovered: packageCovered,
       upgradeFromId: upgradeFromId,
       upgradeFromName: upgradeFrom ? upgradeFrom.name : '',
@@ -2600,6 +2638,11 @@ function toggleService(id) {
   updateSummary();
 }
 
+function selectUpsellTarget(targetId) {
+  if (!targetId || state.services[targetId]) return;
+  toggleService(targetId);
+}
+
 function updateBudget(serviceId, value) {
   var service = findService(serviceId);
   var selected = state.services[serviceId];
@@ -2614,6 +2657,23 @@ function updateBudget(serviceId, value) {
     if (valEl) valEl.textContent = selected.price + ' €';
   }
   updateSummary();
+}
+
+function renderModuleUpsell(service, selected) {
+  if (!selected || getContentValue('upsellEnabled') !== 'true') return '';
+  var targetId = String(service.upsellTargetId || '').trim();
+  if (!targetId || state.services[targetId]) return '';
+  var target = findService(targetId);
+  if (!target || target.active === false) return '';
+  var text = String(service.upsellText || '').trim();
+  if (!text) {
+    text = 'Noch hochwertiger: Upgrade von ' + service.name + ' auf ' + target.name + ' empfehlen.';
+  }
+  return '<div class="module-upsell-card">' +
+    '<div class="module-upsell-kicker">Empfehlung</div>' +
+    '<div class="module-upsell-text">' + esc(text) + '</div>' +
+    '<button class="module-upsell-btn" type="button" data-upsell-target="' + esc(target.id) + '">' + esc(target.name) + ' wählen</button>' +
+    '</div>';
 }
 
 function budgetTrackStyle(service, value) {
@@ -2663,32 +2723,40 @@ function renderServiceList() {
         '<div class="budget-minmax"><span>' + esc(service.budgetMin) + ' €</span><span>' + esc(service.budgetMax) + ' €</span></div>' +
         '</div>';
     }
-    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + '">' +
-      '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
-      '<div class="service-icon">' + esc(service.icon) + '</div>' +
-      '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
-      (packageCovered ? '<div class="package-covered-badge">' + esc(ui.packageCoveredBadge) + '</div>' : '') +
-      (upgradeFrom ? '<div class="upgrade-badge">' + esc(ui.upgradeBadge + ' statt ' + upgradeFrom) + '</div>' : '') +
-      (!selected && getContentValue('lossFramingEnabled') === 'true' && service.lossText ? '<div class="service-loss-text">' + esc(service.lossText) + '</div>' : '') +
-      rulePills + '</div>' +
-      '<div class="service-price">' + priceLabel + '</div>' +
-      '<div class="service-checkbox">' + (selected ? '✓' : '') + '</div>' +
-      '</div>' +
-      slider +
-      '</div>';
-  }).join('');
+	    var moduleUpsell = renderModuleUpsell(service, selected);
+	    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + '">' +
+	      '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
+	      '<div class="service-icon">' + esc(service.icon) + '</div>' +
+	      '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
+	      (packageCovered ? '<div class="package-covered-badge">' + esc(ui.packageCoveredBadge) + '</div>' : '') +
+	      (upgradeFrom ? '<div class="upgrade-badge">' + esc(ui.upgradeBadge + ' statt ' + upgradeFrom) + '</div>' : '') +
+	      (!selected && getContentValue('lossFramingEnabled') === 'true' && service.lossText ? '<div class="service-loss-text">' + esc(service.lossText) + '</div>' : '') +
+	      rulePills + '</div>' +
+	      '<div class="service-price">' + priceLabel + '</div>' +
+	      '<div class="service-checkbox">' + (selected ? '✓' : '') + '</div>' +
+	      '</div>' +
+	      moduleUpsell +
+	      slider +
+	      '</div>';
+	  }).join('');
 
   document.querySelectorAll('[data-service-id]').forEach(function(header) {
     header.addEventListener('click', function() {
       toggleService(header.getAttribute('data-service-id'));
     });
   });
-  document.querySelectorAll('[data-budget-id]').forEach(function(input) {
-    input.addEventListener('input', function() {
-      updateBudget(input.getAttribute('data-budget-id'), input.value);
-    });
-  });
-}
+	  document.querySelectorAll('[data-budget-id]').forEach(function(input) {
+	    input.addEventListener('input', function() {
+	      updateBudget(input.getAttribute('data-budget-id'), input.value);
+	    });
+	  });
+	  document.querySelectorAll('[data-upsell-target]').forEach(function(btn) {
+	    btn.addEventListener('click', function(event) {
+	      event.stopPropagation();
+	      selectUpsellTarget(btn.getAttribute('data-upsell-target'));
+	    });
+	  });
+	}
 
 function getDateMeta(dateKey) {
   var date = parseDateKey(dateKey);
@@ -2990,7 +3058,12 @@ function goStep(step) {
 
 function toggleNewsletter() {
   state.newsletter = !state.newsletter;
+  renderNewsletterState();
+}
+
+function renderNewsletterState() {
   var box = document.getElementById('newsletterBox');
+  if (!box) return;
   box.classList.toggle('checked', state.newsletter);
   box.textContent = state.newsletter ? '✓' : '';
 }
@@ -3173,9 +3246,59 @@ async function loadRemoteData(options) {
   notifyHeight();
 }
 
+function applyBootRuntime(runtime) {
+  runtime = runtime || {};
+  if (runtime.nightRate != null) runtimeSettings.nightRate = Number(runtime.nightRate) || runtimeSettings.nightRate;
+  if (runtime.minGuests != null) runtimeSettings.minGuests = Number(runtime.minGuests) || runtimeSettings.minGuests;
+  if (runtime.maxGuests != null) runtimeSettings.maxGuests = Number(runtime.maxGuests) || runtimeSettings.maxGuests;
+  if (runtime.bookingStartHour != null) runtimeSettings.bookingStartHour = Number(runtime.bookingStartHour) || runtimeSettings.bookingStartHour;
+  if (runtime.latestEndHour != null) runtimeSettings.latestEndHour = Number(runtime.latestEndHour) || runtimeSettings.latestEndHour;
+  if (runtime.minDurationHours != null) runtimeSettings.minDurationHours = Number(runtime.minDurationHours) || runtimeSettings.minDurationHours;
+  if (runtime.maxDurationHours != null) runtimeSettings.maxDurationHours = Number(runtime.maxDurationHours) || runtimeSettings.maxDurationHours;
+  if (runtime.minLeadDays != null) runtimeSettings.minLeadDays = Number(runtime.minLeadDays) || 0;
+  if (Array.isArray(runtime.blockedWeekdays)) {
+    runtimeSettings.blockedWeekdays = runtime.blockedWeekdays.map(Number).filter(function(day) { return !isNaN(day); });
+  }
+}
+
+async function bootPublicPage() {
+  renderCalendar();
+  renderNewsletterState();
+  try {
+    var boot = await runServer('getPublicBootState');
+    if (boot && boot.content) contentData = Object.assign({}, contentData, boot.content);
+    if (boot && boot.runtime) applyBootRuntime(boot.runtime);
+    if (boot && boot.version) dataVersion = boot.version;
+    buildStartTimeOptions();
+    updateDurationOptions();
+    updateAvailabilityNote();
+    renderCalendar();
+    document.body.classList.remove('booting');
+    applyMaintenanceMode();
+    if (isMaintenanceMode()) return;
+    document.body.classList.add('public-ready');
+    await loadRemoteData();
+  } catch (err) {
+    document.body.classList.remove('booting');
+    document.body.classList.add('public-ready');
+    await loadRemoteData();
+  }
+}
+
 function startDataPolling() {
   if (dataPollTimer) clearInterval(dataPollTimer);
   dataPollTimer = setInterval(function() {
+    if (isMaintenanceMode()) {
+      runServer('getPublicBootState')
+        .then(function(result) {
+          if (result && result.content) contentData = Object.assign({}, contentData, result.content);
+          if (result && result.runtime) applyBootRuntime(result.runtime);
+          if (!isMaintenanceMode()) return bootPublicPage();
+          applyMaintenanceMode();
+        })
+        .catch(function() {});
+      return;
+    }
     runServer('getDataVersion')
       .then(function(result) {
         if (result && result.version && dataVersion && result.version !== dataVersion) {
@@ -3213,7 +3336,7 @@ function bindStaticEvents() {
 
 bindStaticEvents();
 renderOccasionCards();
-loadRemoteData();
+bootPublicPage();
 startDataPolling();
 
 // --- IFRAME EMBED SUPPORT ---
