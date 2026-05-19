@@ -1,7 +1,3 @@
-
-
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -640,6 +636,7 @@ section{padding:120px 56px;}
 .pkg-icon,.service-icon{width:32px;height:32px;margin-bottom:8px;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .pkg-icon svg,.service-icon svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round;}
 .pkg-icon .legacy-icon,.service-icon .legacy-icon{font-size:24px;line-height:1;}
+.catalog-icon-img{width:32px;height:32px;object-fit:contain;display:block;}
 .pkg-name{font-family:var(--serif);font-size:17px;color:var(--dark);margin-bottom:4px;letter-spacing:-.01em;}
 .pkg-desc{font-family:var(--serif);font-style:italic;font-size:14px;color:#4f493f;margin-bottom:10px;line-height:1.65;}
 .pkg-desc p{margin:0 0 8px;}
@@ -1646,6 +1643,9 @@ var ICON_SVGS = {
 
 function renderCatalogIcon(icon) {
   var key = String(icon || '').trim();
+  if (/^(https?:\/\/|data:image\/)/i.test(key)) {
+    return '<img class="catalog-icon-img" alt="" loading="lazy" src="' + esc(key) + '">';
+  }
   if (ICON_SVGS[key]) return ICON_SVGS[key];
   return '<span class="legacy-icon">' + esc(key) + '</span>';
 }
@@ -1760,6 +1760,23 @@ function clamp(value, min, max) {
 function toMinutes(timeValue) {
   var parts = String(timeValue || '00:00').split(':');
   return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+}
+
+function normalizeTimeValue(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'number' && !isNaN(value)) {
+    var minutes = Math.round((value % 1) * 24 * 60);
+    return pad(Math.floor(minutes / 60)) + ':' + pad(minutes % 60);
+  }
+  var text = String(value || '').trim().replace(/^'+/, '');
+  var iso = text.match(/T(\\d{2}):(\\d{2})/);
+  if (iso) return iso[1] + ':' + iso[2];
+  var match = text.match(/^(\\d{1,2})[:.](\\d{2})$/);
+  if (!match) return '';
+  var hour = parseInt(match[1], 10);
+  var minute = parseInt(match[2], 10);
+  if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 29 || minute < 0 || minute > 59) return '';
+  return pad(hour) + ':' + pad(minute);
 }
 
 var GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz2-Ef4Azcd1gjYOYiXl5X5yVanQW5fWWkVBvRLSF4pJqNcl9EJEeLPWPd70e2QhbGh/exec';
@@ -2288,7 +2305,7 @@ function normalizeServices(list) {
       pricePerGuest: Number(service.pricePerGuest || 0),
       budgetMin: Number(service.budgetMin || 0),
       budgetMax: Number(service.budgetMax || 0),
-      surchargeStartTime: String(service.surchargeStartTime || ''),
+      surchargeStartTime: normalizeTimeValue(service.surchargeStartTime),
       surchargeFlatPerStartedHour: Number(service.surchargeFlatPerStartedHour || 0),
       options: Array.isArray(service.options) ? service.options.map(function(option) {
         return {
@@ -2351,8 +2368,8 @@ function normalizePackages(list) {
       allowedWeekdays: Array.isArray(pkg.allowedWeekdays)
         ? pkg.allowedWeekdays.map(String)
         : String(pkg.allowedWeekdays || '').split(',').map(function(day) { return day.trim(); }).filter(Boolean),
-      startTimeMin: String(pkg.startTimeMin || ''),
-      startTimeMax: String(pkg.startTimeMax || ''),
+      startTimeMin: normalizeTimeValue(pkg.startTimeMin),
+      startTimeMax: normalizeTimeValue(pkg.startTimeMax),
       active: pkg.active !== false,
       allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : []
     };
