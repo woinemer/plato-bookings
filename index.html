@@ -632,6 +632,7 @@ section{padding:120px 56px;}
 .pkg-desc li{margin:3px 0;}
 .pkg-modules{display:flex;flex-wrap:wrap;gap:4px;}
 .pkg-module-tag{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;background:var(--cream-2);color:var(--stone);padding:3px 8px;border-radius:4px;}
+.pkg-module-tag.included{background:rgba(186,159,93,.16);color:var(--gold);border:1px solid rgba(186,159,93,.24);}
 
 /* Services */
 .service-list{display:flex;flex-direction:column;gap:10px;}
@@ -641,14 +642,18 @@ section{padding:120px 56px;}
 }
 .service-card:hover{border-color:var(--gold-line);}
 .service-card.selected{border-color:var(--dark);background:var(--cream-2);}
+.service-card.included{border-color:var(--gold-line);background:#fffaf0;}
 .service-card-header{padding:18px 20px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;}
+.service-card.included .service-card-header{cursor:default;}
 .service-icon{font-size:22px;flex-shrink:0;margin-top:2px;}
 .service-info{flex:1;}
 .service-name{font-weight:600;font-size:14px;color:var(--dark);}
 .service-desc{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-top:3px;line-height:1.5;}
+.included-badge{display:inline-flex;margin-top:8px;padding:4px 8px;border-radius:4px;background:rgba(186,159,93,.16);border:1px solid rgba(186,159,93,.24);color:var(--gold);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 .service-price{text-align:right;flex-shrink:0;min-width:80px;}
 .service-price .price-val{font-family:var(--serif);font-size:20px;color:var(--dark);letter-spacing:-.01em;}
 .service-price .price-sub{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--stone);margin-top:2px;}
+.service-card.included .price-val{color:var(--gold);}
 .service-checkbox{
   width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border);
   flex-shrink:0;display:flex;align-items:center;justify-content:center;
@@ -720,6 +725,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .summary-service .sname{flex:1;}
 .summary-service .sname small{display:block;font-size:10px;opacity:.6;margin-top:2px;letter-spacing:.04em;}
 .summary-service .sval{color:var(--gold);font-family:var(--serif);font-size:13px;white-space:nowrap;}
+.summary-savings{margin-top:12px;padding:10px 12px;border:1px solid rgba(186,159,93,.26);background:rgba(186,159,93,.1);border-radius:6px;color:var(--gold);font-family:var(--serif);font-size:13px;text-align:center;}
 .no-services{font-family:var(--serif);font-style:italic;font-size:12px;color:rgba(217,208,188,.4);padding:6px 0;}
 .sum-pkg-badge{
   font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
@@ -1282,6 +1288,9 @@ var UI = {
     durationPlaceholder: '– Dauer wählen –',
     noPackages: 'Keine Pakete hinterlegt.',
     packageEstimate: 'Ca. {total}/Gast',
+    includedBadge: 'Inklusive im Paket',
+    includedPrice: 'Inklusive',
+    packageSavings: 'Du sparst {amount}/Gast',
     nightSurcharge: 'Nachtzuschlag',
     nextDay: '(+1)',
     errors: {
@@ -1391,6 +1400,9 @@ var UI = {
     durationPlaceholder: '- Choose duration -',
     noPackages: 'No packages available yet.',
     packageEstimate: 'Approx. {total}/guest',
+    includedBadge: 'Included in package',
+    includedPrice: 'Included',
+    packageSavings: 'You save {amount}/guest',
     nightSurcharge: 'Night surcharge',
     nextDay: '(next day)',
     errors: {
@@ -2156,6 +2168,7 @@ function normalizePackages(list) {
       name: String(pkg.name || ''),
       desc: String(pkg.desc || ''),
       modules: Array.isArray(pkg.modules) ? pkg.modules.map(String) : [],
+      includedModules: Array.isArray(pkg.includedModules) ? pkg.includedModules.map(String) : [],
       occasions: Array.isArray(pkg.occasions) ? pkg.occasions.map(String) : [],
       active: pkg.active !== false,
       allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : []
@@ -2168,6 +2181,43 @@ function defaultServicePrice(service) {
     return service.pricePerGuest || service.budgetMin || 0;
   }
   return service.pricePerGuest || 0;
+}
+
+function uniqueIds(ids) {
+  var seen = {};
+  return (ids || []).filter(function(id) {
+    id = String(id || '');
+    if (!id || seen[id]) return false;
+    seen[id] = true;
+    return true;
+  });
+}
+
+function packageIncludedIds(pkg) {
+  return uniqueIds(pkg && pkg.includedModules ? pkg.includedModules : []);
+}
+
+function packageChargeableIds(pkg) {
+  var included = {};
+  packageIncludedIds(pkg).forEach(function(id) { included[id] = true; });
+  return uniqueIds(pkg && pkg.modules ? pkg.modules : []).filter(function(id) {
+    return !included[id];
+  });
+}
+
+function serviceSavingsPerGuest(service, guests) {
+  var regular = defaultServicePrice(service);
+  if (service.priceType === 'flat') {
+    return guests > 0 ? Math.round(regular / guests * 100) / 100 : 0;
+  }
+  return regular;
+}
+
+function packageSavingsPerGuest(pkg) {
+  return packageIncludedIds(pkg).reduce(function(sum, id) {
+    var service = findService(id);
+    return service ? sum + serviceSavingsPerGuest(service, state.guests) : sum;
+  }, 0);
 }
 
 function pushRuleNotice(list, text) {
@@ -2230,18 +2280,22 @@ function normalizeSelectedIds(selectedIds, notices, preferredId) {
   return selectedIds;
 }
 
-function commitServiceSelection(selectedIds, preservePackage) {
+function commitServiceSelection(selectedIds, preservePackage, includedIds) {
+  includedIds = includedIds || {};
   var next = {};
   getActiveServices().forEach(function(service) {
     if (!selectedIds[service.id]) return;
     var existing = state.services[service.id];
+    var included = !!includedIds[service.id];
     next[service.id] = {
       id: service.id,
       icon: service.icon,
       name: service.name,
       desc: service.desc,
       priceType: service.priceType,
-      price: existing && existing.price != null ? Number(existing.price) : defaultServicePrice(service),
+      price: included ? 0 : (existing && existing.price != null && !existing.included ? Number(existing.price) : defaultServicePrice(service)),
+      regularPrice: defaultServicePrice(service),
+      included: included,
       budgetMin: service.budgetMin,
       budgetMax: service.budgetMax,
       requires: (service.requires || []).slice(),
@@ -2273,12 +2327,20 @@ function renderRuleMessages() {
 
 function packageEstimate(pkg) {
   var selectedIds = {};
-  (pkg.modules || []).forEach(function(id) {
+  var includedIds = {};
+  packageIncludedIds(pkg).forEach(function(id) {
+    if (findService(id)) {
+      selectedIds[id] = true;
+      includedIds[id] = true;
+    }
+  });
+  packageChargeableIds(pkg).forEach(function(id) {
     if (findService(id)) selectedIds[id] = true;
   });
-  normalizeSelectedIds(selectedIds, [], pkg.modules && pkg.modules[0] ? pkg.modules[0] : '');
+  normalizeSelectedIds(selectedIds, [], packageIncludedIds(pkg)[0] || packageChargeableIds(pkg)[0] || pkg.id);
   var total = getActiveServices().reduce(function(sum, service) {
     if (!selectedIds[service.id]) return sum;
+    if (includedIds[service.id]) return sum;
     var price = defaultServicePrice(service);
     return sum + (service.priceType === 'flat' ? price : price * state.guests);
   }, 0);
@@ -2324,9 +2386,11 @@ function renderPackages() {
       total: fmtEur(ppEstimate),
       guests: state.guests
     });
-    var tags = (pkg.modules || []).map(function(moduleId) {
+    var includedMap = {};
+    packageIncludedIds(pkg).forEach(function(id) { includedMap[id] = true; });
+    var tags = uniqueIds((pkg.modules || []).concat(pkg.includedModules || [])).map(function(moduleId) {
       var service = findService(moduleId);
-      return service ? '<span class="pkg-module-tag">' + esc(service.name) + '</span>' : '';
+      return service ? '<span class="pkg-module-tag' + (includedMap[moduleId] ? ' included' : '') + '">' + esc(service.name) + (includedMap[moduleId] ? ' · ' + ui.includedPrice : '') + '</span>' : '';
     }).join('');
     var badge = (popularId && pkg.id === popularId)
       ? '<div class="pkg-popular-badge">' + esc(getContentValue(state.lang === 'en' ? 'popularBadgeTextEn' : 'popularBadgeTextDe') || 'Beliebt') + '</div>'
@@ -2359,7 +2423,12 @@ function togglePkgOpen() {
 
 function selectPackage(pkgId) {
   if (state.selectedPackage === pkgId) {
+    var selectedIds = {};
+    Object.keys(state.services).forEach(function(serviceId) {
+      selectedIds[serviceId] = true;
+    });
     state.selectedPackage = '';
+    commitServiceSelection(selectedIds, false, {});
     lastRuleMessages = [];
     renderPackages();
     renderServiceList();
@@ -2370,13 +2439,20 @@ function selectPackage(pkgId) {
   var pkg = findPackage(pkgId);
   if (!pkg) return;
   var selectedIds = {};
-  (pkg.modules || []).forEach(function(moduleId) {
+  var includedIds = {};
+  packageIncludedIds(pkg).forEach(function(moduleId) {
+    if (findService(moduleId)) {
+      selectedIds[moduleId] = true;
+      includedIds[moduleId] = true;
+    }
+  });
+  packageChargeableIds(pkg).forEach(function(moduleId) {
     if (findService(moduleId)) selectedIds[moduleId] = true;
   });
   lastRuleMessages = [];
-  normalizeSelectedIds(selectedIds, lastRuleMessages, (pkg.modules || [])[0] || pkg.id);
+  normalizeSelectedIds(selectedIds, lastRuleMessages, packageIncludedIds(pkg)[0] || packageChargeableIds(pkg)[0] || pkg.id);
   state.selectedPackage = pkgId;
-  commitServiceSelection(selectedIds, true);
+  commitServiceSelection(selectedIds, true, includedIds);
   renderPackages();
   renderServiceList();
   renderRuleMessages();
@@ -2396,6 +2472,7 @@ function selectAndBook(pkgId) {
 function toggleService(id) {
   var service = findService(id);
   if (!service) return;
+  if (state.services[id] && state.services[id].included) return;
   var selectedIds = {};
   Object.keys(state.services).forEach(function(serviceId) {
     selectedIds[serviceId] = true;
@@ -2418,6 +2495,7 @@ function updateBudget(serviceId, value) {
   var service = findService(serviceId);
   var selected = state.services[serviceId];
   if (!service || !selected) return;
+  if (selected.included) return;
   selected.price = clamp(parseInt(value, 10) || service.budgetMin, service.budgetMin, service.budgetMax);
   // Update slider UI in-place — calling renderServiceList() destroys the slider mid-drag
   var slider = document.querySelector('[data-budget-id="' + serviceId + '"]');
@@ -2445,8 +2523,13 @@ function renderServiceList() {
   }
   list.innerHTML = avail.map(function(service) {
     var selected = !!state.services[service.id];
-    var currentPrice = selected ? Number(state.services[service.id].price) : defaultServicePrice(service);
-    var priceLabel = service.priceType === 'flat'
+    var selectedState = selected ? state.services[service.id] : null;
+    var included = !!(selectedState && selectedState.included);
+    var currentPrice = selected ? Number(selectedState.price) : defaultServicePrice(service);
+    var saveLabel = fmtEur(serviceSavingsPerGuest(service, state.guests)) + ui.perGuest;
+    var priceLabel = included
+      ? '<div class="price-val">' + esc(ui.includedPrice) + '</div><div class="price-sub">' + esc(saveLabel) + '</div>'
+      : service.priceType === 'flat'
       ? '<div class="price-val">' + esc(String(service.pricePerGuest)) + ' €</div><div class="price-sub">Flat</div>'
       : service.priceType === 'budget'
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
@@ -2465,17 +2548,18 @@ function renderServiceList() {
       rulePills += '</div>';
     }
     var slider = '';
-    if (service.priceType === 'budget') {
+    if (service.priceType === 'budget' && !included) {
       slider = '<div class="budget-slider-wrap" style="display:' + (selected ? 'block' : 'none') + '">' +
         '<div class="budget-slider-top"><span class="budget-slider-lbl">' + esc(ui.estimated) + ' ' + esc(ui.perGuest) + '</span><span class="budget-val">' + esc(String(currentPrice)) + ' €</span></div>' +
         '<input type="range" min="' + esc(service.budgetMin) + '" max="' + esc(service.budgetMax) + '" step="1" value="' + esc(currentPrice) + '" data-budget-id="' + esc(service.id) + '" style="background:' + budgetTrackStyle(service, currentPrice) + '">' +
         '<div class="budget-minmax"><span>' + esc(service.budgetMin) + ' €</span><span>' + esc(service.budgetMax) + ' €</span></div>' +
         '</div>';
     }
-    return '<div class="service-card' + (selected ? ' selected' : '') + '">' +
+    return '<div class="service-card' + (selected ? ' selected' : '') + (included ? ' included' : '') + '">' +
       '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
       '<div class="service-icon">' + esc(service.icon) + '</div>' +
       '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
+      (included ? '<div class="included-badge">' + esc(ui.includedBadge) + '</div>' : '') +
       (!selected && getContentValue('lossFramingEnabled') === 'true' && service.lossText ? '<div class="service-loss-text">' + esc(service.lossText) + '</div>' : '') +
       rulePills + '</div>' +
       '<div class="service-price">' + priceLabel + '</div>' +
@@ -2720,7 +2804,13 @@ function updateSummary() {
   if (!selected.length && !state.nightSurcharge) {
     container.innerHTML = badge + '<div class="no-services">' + esc(ui.noServices) + '</div>';
   } else {
+    var totalSavingsPerGuest = 0;
     var rows = selected.map(function(service) {
+      if (service.included) {
+        var savedPp = serviceSavingsPerGuest(service, state.guests);
+        totalSavingsPerGuest += savedPp;
+        return '<div class="summary-service"><span class="sname">' + esc(service.icon + ' ' + service.name) + '<small>' + esc(ui.includedBadge + ' · ' + fmtEur(savedPp) + ui.perGuest) + '</small></span><span class="sval">' + esc(ui.includedPrice) + '</span></div>';
+      }
       var ppContrib = service.priceType === 'flat'
         ? (state.guests > 0 ? Math.round(service.price / state.guests * 100) / 100 : 0)
         : service.price;
@@ -2732,6 +2822,9 @@ function updateSummary() {
     if (state.nightSurcharge > 0) {
       var nightPp = state.guests > 0 ? Math.round(state.nightSurcharge / state.guests * 100) / 100 : 0;
       rows += '<div class="summary-service"><span class="sname">🌙 ' + esc(ui.nightSurcharge) + '<small>' + esc(state.nightHours + ' × ' + runtimeSettings.nightRate + ' €') + '</small></span><span class="sval">' + esc(fmtEur(nightPp) + ui.perGuest) + '</span></div>';
+    }
+    if (totalSavingsPerGuest > 0) {
+      rows += '<div class="summary-savings">' + esc(replaceTokens(ui.packageSavings, { amount: fmtEur(totalSavingsPerGuest) })) + '</div>';
     }
     container.innerHTML = badge + rows;
   }
