@@ -747,6 +747,14 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .check-box.checked{background:var(--gold);border-color:var(--gold);}
 .check-text{font-size:13px;color:var(--stone);}
 .check-text strong{color:var(--dark);font-weight:500;}
+.discount-box{padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;}
+.discount-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;}
+.discount-input{text-transform:uppercase;}
+.discount-btn{height:46px;padding:0 16px;border-radius:var(--radius);background:var(--dark);color:var(--beige);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+.discount-btn.secondary{background:var(--cream-2);color:var(--dark);border:1px solid var(--border);}
+.discount-msg{margin-top:8px;font-size:12px;color:var(--stone);line-height:1.45;}
+.discount-msg.error{color:var(--red);font-weight:600;}
+.discount-msg.success{color:#3f8f68;font-weight:600;}
 
 /* Summary sidebar */
 .summary{
@@ -772,6 +780,8 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .summary-service .sname small{display:block;font-size:10px;opacity:.6;margin-top:2px;letter-spacing:.04em;}
 .summary-service .sval{color:var(--gold);font-family:var(--serif);font-size:13px;white-space:nowrap;}
 .summary-savings{margin-top:12px;padding:10px 12px;border:1px solid rgba(186,159,93,.26);background:rgba(186,159,93,.1);border-radius:6px;color:var(--gold);font-family:var(--serif);font-size:13px;text-align:center;}
+.summary-discount{display:flex;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(186,159,93,.16);font-size:12px;color:rgba(217,208,188,.72);}
+.summary-discount .sval{color:#7fd39f;font-family:var(--serif);white-space:nowrap;}
 .no-services{font-family:var(--serif);font-style:italic;font-size:12px;color:rgba(217,208,188,.4);padding:6px 0;}
 .sum-pkg-badge{
   font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
@@ -1203,6 +1213,16 @@ html.iframe-mode .hero { min-height: 0; }
           <label class="field-label">Nachricht (optional)</label>
           <textarea class="field-input" id="message" rows="3" placeholder="Gibt es noch etwas, das wir wissen sollten?"></textarea>
         </div>
+        <div class="field-group">
+          <label class="field-label">Rabattcode</label>
+          <div class="discount-box">
+            <div class="discount-row">
+              <input class="field-input discount-input" id="discountCode" type="text" placeholder="Code eingeben">
+              <button class="discount-btn" id="discountApplyBtn" type="button" onclick="applyDiscountCode()">Anwenden</button>
+            </div>
+            <div class="discount-msg" id="discountMsg"></div>
+          </div>
+        </div>
         <input class="honeypot-field" id="website" type="text" autocomplete="off" tabindex="-1" aria-hidden="true">
         <div class="social-proof-block" id="socialProofBlock" hidden>
           <div class="social-proof-quote" id="socialProofQuote"></div>
@@ -1569,6 +1589,8 @@ var state = {
   guests: 50,
   occasion: null,
   selectedPackage: '',
+  discountCode: '',
+  discount: null,
   newsletter: true,
   services: {},
   selectedSpaceId: '',
@@ -1709,21 +1731,52 @@ var OCCASION_ICON_BY_LABEL = {
 
 ICON_SVGS['handshake-premium'] = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 18l4-4 4 4 2-2"/><path d="M6 15l4-4 4 3"/><path d="M26 15l-4-4-4 3"/><path d="M9 19l3 3a3 3 0 0 0 4.2 0l1.8-1.8"/><path d="M5 21l4-4"/><path d="M27 21l-4-4"/></svg>';
 
-function renderCatalogIcon(icon) {
+[
+  ['bar', 'beer-premium'], ['drinks', 'beer-premium'], ['getraenke', 'beer-premium'], ['cocktail', 'beer-premium'],
+  ['food', 'utensils'], ['essen', 'utensils'], ['catering', 'utensils'],
+  ['deko', 'sparkles'], ['deco', 'sparkles'], ['decoration', 'sparkles'],
+  ['music-light', 'music'], ['technik', 'music'], ['tech', 'music'],
+  ['vesper', 'vesper-board'], ['live-cooking', 'livecooking'], ['live_cooking', 'livecooking']
+].forEach(function(alias) {
+  if (!ICON_SVGS[alias[0]]) ICON_SVGS[alias[0]] = ICON_SVGS[alias[1]];
+});
+
+function inferCatalogIconKey(item, fallbackKey) {
+  var text = [fallbackKey, item && item.id, item && item.name, item && item.desc].join(' ').toLowerCase();
+  if (/music|musik|licht|technik|dj|sound/.test(text)) return 'music';
+  if (/bar|bier|beer|getränk|getraenk|drink|cocktail|wasser/.test(text)) return /wasser|water/.test(text) ? 'water' : 'beer-premium';
+  if (/food|essen|catering|buffet|menü|menu|speise|utensil/.test(text)) return 'utensils';
+  if (/vesper|brett/.test(text)) return 'vesper-board';
+  if (/live.?cooking|cooking|küche|kueche/.test(text)) return 'livecooking';
+  if (/deko|deco|decor|blumen|tisch|spark/.test(text)) return 'sparkles';
+  if (/firma|building|business|office/.test(text)) return 'building';
+  if (/hochzeit|ring|wedding/.test(text)) return 'ring';
+  if (/geburtstag|cake|birthday/.test(text)) return 'cake';
+  return fallbackKey || 'celebration';
+}
+
+function renderCatalogIcon(icon, fallbackKey) {
   var key = String(icon || '').trim();
   if (/^(https?:\/\/|data:image\/)/i.test(key)) {
-    return '<img class="catalog-icon-img" alt="" src="' + esc(key) + '">';
+    return '<img class="catalog-icon-img" alt="" src="' + esc(key) + '" data-fallback-icon="' + esc(fallbackKey || 'celebration') + '">';
   }
   if (ICON_SVGS[key]) return ICON_SVGS[key];
-  return '<span class="legacy-icon">' + esc(key) + '</span>';
+  if (fallbackKey && ICON_SVGS[fallbackKey]) return ICON_SVGS[fallbackKey];
+  return '<span class="legacy-icon">' + esc(key || fallbackKey || '') + '</span>';
+}
+
+function renderCatalogItemIcon(item, fallbackKey) {
+  var icon = String(item && item.icon || '').trim();
+  var inferred = inferCatalogIconKey(item, fallbackKey);
+  return renderCatalogIcon(icon, inferred);
 }
 
 function renderOccasionIcon(occ) {
   var icon = String(occ && occ.icon || '').trim();
-  if (/^(https?:\/\/|data:image\/)/i.test(icon) || ICON_SVGS[icon]) {
-    return renderCatalogIcon(icon);
-  }
   var labelKey = OCCASION_ICON_BY_LABEL[String(occ && occ.label || '').trim()];
+  if (/^(https?:\/\/|data:image\/)/i.test(icon) || ICON_SVGS[icon]) {
+    return renderCatalogIcon(icon, labelKey);
+  }
   if (labelKey) return renderCatalogIcon(labelKey);
   return renderCatalogIcon(icon);
 }
@@ -2951,7 +3004,7 @@ function renderPackages() {
       '<div class="pkg-checkmark">✓</div>' +
       media +
       '<div class="pkg-card-body">' +
-        '<div class="pkg-icon">' + renderCatalogIcon(pkg.icon) + '</div>' +
+        '<div class="pkg-icon">' + renderCatalogItemIcon(pkg, 'celebration') + '</div>' +
         '<div class="pkg-name">' + esc(pkg.name) + '</div>' +
         '<div class="pkg-desc">' + renderRichText(pkg.desc) + '</div>' +
         '<div class="pkg-modules">' + tags + '</div>' +
@@ -3322,7 +3375,7 @@ function renderServiceList() {
 		    return '<div class="service-card' + (selected ? ' selected' : '') + (packageCovered ? ' package-covered' : '') + (disabled ? ' disabled' : '') + (media ? ' has-image' : '') + '">' +
 	      media +
 	      '<div class="service-card-header" data-service-id="' + esc(service.id) + '">' +
-	      '<div class="service-icon">' + renderCatalogIcon(service.icon) + '</div>' +
+	      '<div class="service-icon">' + renderCatalogItemIcon(service, 'celebration') + '</div>' +
 	      '<div class="service-info"><div class="service-name">' + esc(service.name) + '</div><div class="service-desc">' + esc(service.desc) + '</div>' +
 	      (selectedOption ? '<div class="upgrade-badge">' + esc(selectedOption.name) + '</div>' : '') +
 	      (packageCovered ? '<div class="package-covered-badge">' + esc(ui.packageCoveredBadge) + '</div>' : '') +
@@ -3648,6 +3701,19 @@ function updateSummary() {
     if (service.chargeTotal != null) return sum + service.chargeTotal + serviceTimeSurchargeTotal(findService(service.id));
     return sum + (service.priceType === 'flat' ? service.price : service.price * state.guests) + serviceTimeSurchargeTotal(findService(service.id));
   }, usesPreset ? packageBasePerGuest * state.guests : 0) + state.nightSurcharge;
+  if (state.discount &&
+      Math.abs(Number(state.discount.totalBeforeDiscount || 0) - total) > 0.01 &&
+      Math.abs(Number(state.discount.totalAfterDiscount || 0) - total) > 0.01) {
+    state.discount = null;
+    state.discountCode = '';
+    renderDiscountState('Bitte wende den Rabattcode nach Änderungen erneut an.', 'error');
+  }
+  if (state.discount && state.discount.amount > 0) {
+    container.insertAdjacentHTML('beforeend', '<div class="summary-discount"><span>' + esc(state.discount.label || state.discount.code || 'Rabatt') + '</span><span class="sval">-' + esc(fmtEur(state.discount.amount)) + '</span></div>');
+    total = Math.abs(Number(state.discount.totalBeforeDiscount || 0) - total) <= 0.01
+      ? Math.max(0, total - state.discount.amount)
+      : Number(state.discount.totalAfterDiscount || total);
+  }
   var perPerson = state.guests > 0 && total > 0 ? Math.round(total / state.guests * 100) / 100 : 0;
   document.getElementById('sum-total').textContent = perPerson > 0 ? fmtEur(perPerson) + ui.perGuest : '– €/Gast';
 }
@@ -3784,6 +3850,86 @@ function validateRequiredServiceOptions() {
   });
 }
 
+function renderDiscountState(message, kind) {
+  var input = document.getElementById('discountCode');
+  var msg = document.getElementById('discountMsg');
+  var btn = document.getElementById('discountApplyBtn');
+  if (input && state.discountCode) input.value = state.discountCode;
+  if (btn) {
+    btn.textContent = state.discount ? 'Entfernen' : 'Anwenden';
+    btn.classList.toggle('secondary', !!state.discount);
+  }
+  if (msg) {
+    msg.textContent = message || (state.discount ? ((state.discount.label || state.discount.code) + ' angewendet: -' + fmtEur(state.discount.amount)) : '');
+    msg.className = 'discount-msg' + (kind ? ' ' + kind : (state.discount ? ' success' : ''));
+  }
+}
+
+function applyDiscountCode() {
+  var input = document.getElementById('discountCode');
+  var btn = document.getElementById('discountApplyBtn');
+  var code = String(input && input.value || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (state.discount) {
+    state.discount = null;
+    state.discountCode = '';
+    if (input) input.value = '';
+    renderDiscountState('', '');
+    updateSummary();
+    return;
+  }
+  if (!code) {
+    renderDiscountState('Bitte gib einen Rabattcode ein.', 'error');
+    return;
+  }
+  if (!state.selectedDate || !state.selectedTime || !state.duration || !state.occasion) {
+    renderDiscountState('Bitte wähle zuerst Datum, Uhrzeit, Gäste und Anlass.', 'error');
+    return;
+  }
+  if (!validateRequiredServiceOptions()) {
+    renderDiscountState('Bitte wähle zuerst die Varianten der markierten Module.', 'error');
+    return;
+  }
+  state.discountCode = code;
+  var payload = buildSubmitPayload();
+  payload.discountCode = code;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Prüfen...';
+  }
+  renderDiscountState('Rabattcode wird geprüft...', '');
+  fetch(GAS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'validateDiscountCode', payload: payload })
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(result) {
+    if (btn) btn.disabled = false;
+    if (result && result.success && result.valid && result.discount) {
+      state.discount = result.discount;
+      state.discountCode = result.discount.code || code;
+      if (input) input.value = state.discountCode;
+      renderDiscountState('', 'success');
+      updateSummary();
+    } else {
+      state.discount = null;
+      state.discountCode = '';
+      renderDiscountState((result && result.error) || 'Der Rabattcode kann für diese Anfrage nicht angewendet werden.', 'error');
+      updateSummary();
+    }
+  })
+  .catch(function() {
+    if (btn) btn.disabled = false;
+    state.discount = null;
+    state.discountCode = '';
+    renderDiscountState('Der Rabattcode kann gerade nicht geprüft werden.', 'error');
+    updateSummary();
+  });
+}
+
 function buildSubmitPayload() {
   return {
     date: state.selectedDate,
@@ -3794,6 +3940,7 @@ function buildSubmitPayload() {
     occasion: state.occasion,
     occasionNote: document.getElementById('occasionNote').value.trim(),
     selectedPackage: state.selectedPackage,
+    discountCode: state.discountCode || String(document.getElementById('discountCode') && document.getElementById('discountCode').value || '').trim(),
     services: selectedServicesInOrder().map(function(service) {
       return { id: service.id, price: service.price, optionId: service.optionId || '' };
     }),
@@ -4045,6 +4192,15 @@ function bindStaticEvents() {
     document.getElementById('phoneControl').classList.remove('invalid');
     document.getElementById('err-phone').style.display = 'none';
   });
+  document.addEventListener('error', function(event) {
+    var img = event.target;
+    if (!img || !img.classList || !img.classList.contains('catalog-icon-img')) return;
+    var key = img.getAttribute('data-fallback-icon') || 'celebration';
+    var wrap = document.createElement('span');
+    wrap.className = 'catalog-icon-fallback';
+    wrap.innerHTML = ICON_SVGS[key] || ICON_SVGS.celebration || '';
+    img.replaceWith(wrap);
+  }, true);
 }
 
 bindStaticEvents();
