@@ -497,6 +497,13 @@ section{padding:120px 56px;}
 .upsell-prompt[hidden]{display:none!important;}
 .upsell-prompt strong{color:var(--gold);}
 .upsell-prompt-cta{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.05em;cursor:pointer;text-decoration:underline;}
+.recommendation-panel{margin:12px 0;padding:14px 16px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.36);color:var(--stone);}
+.recommendation-panel[hidden]{display:none!important;}
+.recommendation-kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:5px;}
+.recommendation-title{font-family:var(--serif);font-size:18px;color:var(--dark);line-height:1.2;margin-bottom:4px;}
+.recommendation-text{font-size:12px;line-height:1.5;margin-bottom:10px;}
+.recommendation-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.recommendation-btn{border:0;border-radius:999px;background:var(--gold);color:var(--night);padding:8px 13px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
 .smallgroup-panel{margin-top:16px;padding:18px;border-radius:var(--radius-lg);background:var(--cream-2);border:1px solid var(--border-strong);animation:sgFade .25s ease-out;}
 .smallgroup-panel[hidden]{display:none!important;}
 @keyframes sgFade{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
@@ -1147,6 +1154,7 @@ html.iframe-mode .hero { min-height: 0; }
           </div>
           <div class="error-msg" id="err-guests">Bitte eine gültige Gästezahl eingeben.</div>
           <div class="upsell-prompt" id="upsellPrompt" hidden></div>
+          <div class="recommendation-panel" id="serviceRecommendationPanel" hidden></div>
           <div class="smallgroup-panel" id="smallGroupAlt" hidden>
             <div class="smallgroup-headline" id="smallGroupHeadline"></div>
             <div class="smallgroup-body" id="smallGroupBody"></div>
@@ -1265,6 +1273,7 @@ html.iframe-mode .hero { min-height: 0; }
             <div class="discount-msg" id="discountMsg"></div>
           </div>
         </div>
+        <div class="recommendation-panel" id="contactRecommendationPanel" hidden></div>
         <div class="trust-faq" id="trustFaqBlock" hidden></div>
         <input class="honeypot-field" id="website" type="text" autocomplete="off" tabindex="-1" aria-hidden="true">
         <div class="social-proof-block" id="socialProofBlock" hidden>
@@ -1336,6 +1345,8 @@ var DEFAULT_PUBLIC_CONTENT = {
   trustFaqEnabled: 'true',
   trustFaqTitleDe: 'Gut zu wissen',
   trustFaqItemsDe: 'Noch keine verbindliche Buchung|Mit dem Absenden stellst du nur eine Anfrage - wir melden uns persönlich.\nAntwort innerhalb von 24 Stunden|Du bekommst ein individuelles Angebot von unserem Team.\nRabattcode möglich|Falls ein gültiger Rabattcode eingetragen ist, berücksichtigen wir ihn im Angebot.',
+  publicPollingEnabled: 'true',
+  publicPollingSeconds: '300',
   bookingTitle: 'Termin anfragen.',
   bookingSub: 'In wenigen Schritten zu deiner persönlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
   smallGroupEnabled: 'true',
@@ -1652,6 +1663,7 @@ var services = [];
 var serviceCategories = [];
 var packages = [];
 var spaces = [];
+var recommendationRules = [];
 var dataVersion = '';
 var dataPollTimer = null;
 var contentLoading = true;
@@ -2154,6 +2166,65 @@ function renderTrustFaq() {
   block.hidden = false;
 }
 
+function matchingRecommendationRules(placement) {
+  var selectedIds = selectedServicesInOrder().map(function(service) { return service.id; });
+  var selectedMap = {};
+  selectedIds.forEach(function(id) { selectedMap[id] = true; });
+  return (recommendationRules || []).filter(function(rule) {
+    if (rule.active === false || rule.placement !== placement) return false;
+    if (rule.occasionFilter && rule.occasionFilter.length && rule.occasionFilter.indexOf(state.occasion) === -1) return false;
+    if (rule.minGuests && state.guests < rule.minGuests) return false;
+    if (rule.maxGuests && state.guests > rule.maxGuests) return false;
+    if (rule.packageFilter && rule.packageFilter.length && rule.packageFilter.indexOf(state.selectedPackage || '') === -1) return false;
+    if ((rule.requiredModules || []).some(function(id) { return !selectedMap[id]; })) return false;
+    if ((rule.excludedModules || []).some(function(id) { return selectedMap[id]; })) return false;
+    if (rule.targetType === 'module' && state.services[rule.targetId]) return false;
+    if (rule.targetType === 'package' && state.selectedPackage === rule.targetId) return false;
+    if (rule.targetType === 'module' && !findService(rule.targetId)) return false;
+    if (rule.targetType === 'package' && !findPackage(rule.targetId)) return false;
+    return true;
+  }).sort(function(a, b) { return (a.priority || 0) - (b.priority || 0); }).slice(0, 2);
+}
+
+function renderRecommendations() {
+  renderRecommendationPanel('serviceRecommendationPanel', 'services');
+  renderRecommendationPanel('contactRecommendationPanel', 'contact');
+}
+
+function renderRecommendationPanel(id, placement) {
+  var panel = document.getElementById(id);
+  if (!panel) return;
+  var rules = matchingRecommendationRules(placement);
+  if (!rules.length) {
+    panel.hidden = true;
+    panel.innerHTML = '';
+    return;
+  }
+  panel.innerHTML = rules.map(function(rule) {
+    var target = rule.targetType === 'package' ? findPackage(rule.targetId) : findService(rule.targetId);
+    var label = target ? target.name : rule.targetId;
+    return '<div class="recommendation-kicker">Empfehlung</div>' +
+      '<div class="recommendation-title">' + esc(rule.titleDe || label) + '</div>' +
+      '<div class="recommendation-text">' + esc(rule.textDe || '') + '</div>' +
+      '<div class="recommendation-actions"><button class="recommendation-btn" type="button" data-rec-type="' + esc(rule.targetType) + '" data-rec-target="' + esc(rule.targetId) + '">' + esc(label) + ' wählen</button></div>';
+  }).join('');
+  panel.hidden = false;
+  panel.querySelectorAll('[data-rec-target]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      applyRecommendation(btn.getAttribute('data-rec-type'), btn.getAttribute('data-rec-target'));
+    });
+  });
+}
+
+function applyRecommendation(type, targetId) {
+  if (type === 'package') selectPackage(targetId);
+  else if (type === 'module') {
+    if (!state.services[targetId]) toggleService(targetId);
+  }
+  trackConversionEvent('recommendation_clicked', { type: type, targetId: targetId });
+  renderRecommendations();
+}
+
 function renderSpacesPanel() {
   var grid = document.getElementById('smallGroupGrid');
   if (!grid) return;
@@ -2348,6 +2419,7 @@ function applyContent() {
   updateAvailabilityNote();
   overrideUiFromContent();
   applyPsychologyFeatures();
+  renderRecommendations();
   renderSpacesPanel();
   updateSmallGroupPanel();
   applyMaintenanceMode();
@@ -3136,6 +3208,7 @@ function selectPackage(pkgId) {
     renderServiceList();
     renderRuleMessages();
     updateSummary();
+    renderRecommendations();
     return;
   }
   var pkg = findPackage(pkgId);
@@ -3155,6 +3228,7 @@ function selectPackage(pkgId) {
   renderServiceList();
   renderRuleMessages();
   updateSummary();
+  renderRecommendations();
 }
 
 function selectAndBook(pkgId) {
@@ -3204,6 +3278,7 @@ function toggleService(id) {
   renderServiceList();
   renderRuleMessages();
   updateSummary();
+  renderRecommendations();
 }
 
 function selectUpsellTarget(targetId) {
@@ -3235,6 +3310,7 @@ function selectUpsellTarget(targetId) {
   renderServiceList();
   renderRuleMessages();
   updateSummary();
+  renderRecommendations();
 }
 
 function updateBudget(serviceId, value) {
@@ -3641,6 +3717,7 @@ function onTimeChange() {
     renderPackages();
     renderServiceList();
     updateSummary();
+    renderRecommendations();
     return;
   }
   var startMinutes = toMinutes(startValue);
@@ -3671,6 +3748,7 @@ function onTimeChange() {
   renderPackages();
   renderServiceList();
   updateSummary();
+  renderRecommendations();
 }
 
 function validateGuestCount() {
@@ -3692,6 +3770,7 @@ function validateGuestCount() {
   updateSmallGroupPanel();
   updateSummary();
   updateUpsellPrompt();
+  renderRecommendations();
   return true;
 }
 
@@ -3716,6 +3795,7 @@ function setOccasion(occasion) {
   });
   renderPackages();
   updateSummary();
+  renderRecommendations();
 }
 
 function scrollToBookingWithOcc(occasion) {
@@ -4152,6 +4232,9 @@ function buildSubmitPayload() {
     }, {}),
     fname: document.getElementById('fname').value.trim(),
     lname: document.getElementById('lname').value.trim(),
+    firstName: document.getElementById('fname').value.trim(),
+    lastName: document.getElementById('lname').value.trim(),
+    fullName: [document.getElementById('fname').value.trim(), document.getElementById('lname').value.trim()].filter(Boolean).join(' '),
     email: document.getElementById('email').value.trim(),
     phone: fullPhoneValue(),
     phoneCountry: selectedPhoneCountry().code,
@@ -4273,6 +4356,7 @@ async function loadRemoteData(options) {
       serviceCategories = normalizeServiceCategories(contentResult.serviceCategories || []);
       packages = normalizePackages(contentResult.packages || []);
       spaces = Array.isArray(contentResult.spaces) ? contentResult.spaces : [];
+      recommendationRules = Array.isArray(contentResult.recommendationRules) ? contentResult.recommendationRules : [];
       dataVersion = contentResult.version || dataVersion;
       if (Array.isArray(contentResult.occasions) && contentResult.occasions.length) {
         loadedOccasions = contentResult.occasions;
@@ -4340,6 +4424,8 @@ async function bootPublicPage() {
 
 function startDataPolling() {
   if (dataPollTimer) clearInterval(dataPollTimer);
+  if (getContentValue('publicPollingEnabled') !== 'true') return;
+  var seconds = Math.max(60, parseInt(getContentValue('publicPollingSeconds'), 10) || 300);
   dataPollTimer = setInterval(function() {
     if (isMaintenanceMode()) {
       runServer('getPublicBootState')
@@ -4359,7 +4445,7 @@ function startDataPolling() {
 	          }
 	        })
       .catch(function() {});
-  }, 60000);
+  }, seconds * 1000);
 }
 
 function bindStaticEvents() {
