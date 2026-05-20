@@ -968,9 +968,31 @@ footer{
   .btn-row .btn-primary,.btn-row .btn-secondary{width:100%;justify-content:center;}
   .occasion-card{padding:14px 8px;}
   .occasion-card .oc-label,.oc-label{font-size:12px;line-height:1.25;overflow-wrap:anywhere;}
-  .pkg-card,.service-card{padding:14px;}
-  .pkg-card-title,.service-name{font-size:15px;line-height:1.25;}
-  .module-tab{padding:9px 13px;font-size:10px;}
+  .pkg-form-header{padding:14px 16px;}
+  .pkg-form-grid{grid-template-columns:1fr;padding:12px;gap:10px;}
+  .pkg-card{padding:14px;}
+  .pkg-card.has-image .pkg-card-body{padding:14px;}
+  .pkg-name,.service-name{font-size:15px;line-height:1.25;}
+  .pkg-desc,.service-desc{font-size:13px;line-height:1.5;}
+  .pkg-modules{gap:5px;}
+  .pkg-module-tag{font-size:8px;line-height:1.2;padding:4px 6px;}
+  .module-tabs{gap:6px;margin-bottom:10px;padding-bottom:6px;}
+  .module-tab{padding:9px 12px;font-size:10px;letter-spacing:.06em;}
+  .service-list{gap:8px;}
+  .service-card-header{padding:14px;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;}
+  .service-icon{width:28px;height:28px;}
+  .service-icon svg{width:26px;height:26px;}
+  .service-icon .legacy-icon{font-size:22px;}
+  .service-price{grid-column:2;text-align:left;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .service-price .price-val{font-size:18px;}
+  .service-price .price-sub{margin-top:0;}
+  .service-checkbox{grid-column:1;grid-row:2;width:22px;height:22px;}
+  .service-option-panel{padding:0 14px 14px;margin-top:0;}
+  .service-option-grid{grid-template-columns:1fr;gap:8px;}
+  .service-option-card{display:grid;grid-template-columns:72px 1fr;align-items:stretch;}
+  .service-option-img{height:100%;aspect-ratio:auto;}
+  .service-option-body{padding:9px 10px;}
+  .budget-slider-wrap{padding:14px;}
   .phone-control{grid-template-columns:106px 1fr;}
   .phone-country,.phone-input{font-size:16px;}
   .smallgroup-grid{grid-template-columns:1fr;}
@@ -988,6 +1010,14 @@ footer{
   .booking-body{padding:32px 18px 60px;}
   .panel-title{font-size:22px;}
   .occasion-grid{gap:8px;}
+  .module-headline{font-size:25px;}
+  .pkg-form-title{font-size:17px;}
+  .service-card-header{grid-template-columns:1fr;gap:8px;}
+  .service-icon{display:none;}
+  .service-checkbox{grid-column:1;grid-row:auto;}
+  .service-price{grid-column:1;}
+  .service-option-card{grid-template-columns:1fr;}
+  .service-option-img{height:auto;aspect-ratio:16/9;}
   .cal-cell,.day{min-width:36px;min-height:36px;}
   .field-block{gap:14px;}
 }
@@ -1369,7 +1399,7 @@ var UI = {
     waitlistClear: 'Anderes Datum wählen',
     availabilityWindow: 'Buchungen ab {lead} Tagen Vorlauf. Möglich von {start} bis {end} Uhr, {minDur}-{maxDur} Stunden.',
     availabilityWeekdays: 'Nicht verfügbar an: {days}.',
-    serviceRulesDefault: 'Leistungen mit Abhängigkeiten ergänzen wir automatisch. Nicht kombinierbare Module werden ausgegraut.',
+    serviceRulesDefault: 'Leistungen mit Abhängigkeiten ergänzen wir automatisch. Nicht kombinierbare Module schließen sich aus.',
     ruleAdded: '{required} wurde ergänzt, weil {service} davon abhängt.',
     ruleConflict: '{remove} wurde entfernt, damit die Auswahl mit {keep} zusammenpasst.',
     ruleDependencyRemoved: '{service} wurde entfernt, weil {required} nicht mehr ausgewählt ist.',
@@ -2514,6 +2544,7 @@ function normalizeServices(list) {
       budgetMax: Number(service.budgetMax || 0),
       surchargeStartTime: normalizeTimeValue(service.surchargeStartTime),
       surchargeFlatPerStartedHour: Number(service.surchargeFlatPerStartedHour || 0),
+      defaultOptionId: String(service.defaultOptionId || ''),
       options: Array.isArray(service.options) ? service.options.map(function(option) {
         return {
           optionId: String(option.optionId || ''),
@@ -2613,6 +2644,11 @@ function findServiceOption(service, optionId) {
   return (service.options || []).find(function(option) {
     return option.optionId === id && option.active !== false;
   }) || null;
+}
+
+function defaultServiceOption(service) {
+  if (!service || !(service.options || []).length) return null;
+  return findServiceOption(service, service.defaultOptionId) || service.options[0] || null;
 }
 
 function selectedServiceOption(service, selectedState) {
@@ -2848,7 +2884,8 @@ function commitServiceSelection(selectedIds, preservePackage, coveredIds, upgrad
     var packageCovered = !!coveredIds[service.id];
     var upgradeFromId = upgradeFromIds[service.id] || '';
     var upgradeFrom = upgradeFromId ? findService(upgradeFromId) : null;
-    var optionId = existing && findServiceOption(service, existing.optionId) ? existing.optionId : '';
+    var fallbackOption = defaultServiceOption(service);
+    var optionId = existing && findServiceOption(service, existing.optionId) ? existing.optionId : (fallbackOption ? fallbackOption.optionId : '');
     var option = findServiceOption(service, optionId);
     var price = serviceOptionBasePrice(service, { optionId: optionId }, defaultServicePrice(service));
     var regularInfo = selectedServiceRegularInfo(service, { optionId: optionId });
@@ -3856,7 +3893,7 @@ function validateContactFields() {
 function validateRequiredServiceOptions() {
   return selectedServicesInOrder().every(function(selected) {
     var service = findService(selected.id);
-    return !service || !(service.options || []).length || !!findServiceOption(service, selected.optionId);
+    return !service || !(service.options || []).length || !!findServiceOption(service, selected.optionId) || !!defaultServiceOption(service);
   });
 }
 
@@ -4034,7 +4071,7 @@ function seedDevData() {
     { id: 'bar', icon: 'beer-premium', name: 'Bar-Paket', desc: 'Getränke-Flatrate inkl. Woinemer-Biere', priceType: 'fix', pricePerGuest: 22, budgetMin: 10, budgetMax: 40, surchargeStartTime: '00:30', surchargeFlatPerStartedHour: 200, requires: [], excludes: [] },
     { id: 'deco', icon: 'sparkles', name: 'Dekoration', desc: 'Tischdeko, Blumen & Beleuchtung', priceType: 'budget', pricePerGuest: 8, budgetMin: 5, budgetMax: 25, requires: [], excludes: [] },
     { id: 'music', icon: 'music', name: 'Musik / DJ', desc: 'DJ & Soundanlage fur den Abend', priceType: 'fix', pricePerGuest: 12, budgetMin: 8, budgetMax: 30, requires: [], excludes: [] },
-    { id: 'livecooking', icon: 'livecooking', name: 'Livecooking', desc: 'Frisch zubereitet vor Ort', priceType: 'fix', pricePerGuest: 39, budgetMin: 0, budgetMax: 999, requires: [], excludes: [], options: [
+    { id: 'livecooking', icon: 'livecooking', name: 'Livecooking', desc: 'Frisch zubereitet vor Ort', priceType: 'fix', pricePerGuest: 39, budgetMin: 0, budgetMax: 999, defaultOptionId: 'klassisch', requires: [], excludes: [], options: [
       { optionId: 'klassisch', name: 'Klassisch', desc: 'Unsere Livecooking-Klassiker', priceOverride: '', linkedModules: [] },
       { optionId: 'premium', name: 'Premium', desc: 'Erweitertes Angebot', priceOverride: 45, linkedModules: [] },
       { optionId: 'vegetarisch', name: 'Vegetarisch', desc: 'Vegetarische Variante', priceOverride: '', linkedModules: [] }
