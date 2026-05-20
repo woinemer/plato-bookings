@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -755,6 +756,15 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .discount-msg{margin-top:8px;font-size:12px;color:var(--stone);line-height:1.45;}
 .discount-msg.error{color:var(--red);font-weight:600;}
 .discount-msg.success{color:#3f8f68;font-weight:600;}
+.recovery-notice{margin-top:8px;font-size:11px;line-height:1.45;color:var(--stone);}
+.recovery-notice[hidden]{display:none!important;}
+.trust-faq{margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;}
+.trust-faq[hidden]{display:none!important;}
+.trust-faq-title{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+.trust-faq-item{padding:10px 0;border-top:1px solid rgba(44,42,37,.08);}
+.trust-faq-item:first-of-type{border-top:0;padding-top:0;}
+.trust-faq-q{font-weight:700;font-size:13px;color:var(--dark);margin-bottom:3px;}
+.trust-faq-a{font-size:12px;line-height:1.5;color:var(--stone);}
 
 /* Summary sidebar */
 .summary{
@@ -1211,6 +1221,7 @@ html.iframe-mode .hero { min-height: 0; }
           <label class="field-label">E-Mail</label>
           <input class="field-input" id="email" type="email" placeholder="max@beispiel.de">
           <div class="error-msg" id="err-email">Bitte gültige E-Mail-Adresse eingeben.</div>
+          <div class="recovery-notice" id="recoveryNotice" hidden></div>
           <div class="check-row" onclick="toggleNewsletter()">
             <div class="check-box" id="newsletterBox"></div>
             <span class="check-text"><strong>Newsletter</strong> – ich möchte über kommende Events im °Plato informiert werden.</span>
@@ -1254,6 +1265,7 @@ html.iframe-mode .hero { min-height: 0; }
             <div class="discount-msg" id="discountMsg"></div>
           </div>
         </div>
+        <div class="trust-faq" id="trustFaqBlock" hidden></div>
         <input class="honeypot-field" id="website" type="text" autocomplete="off" tabindex="-1" aria-hidden="true">
         <div class="social-proof-block" id="socialProofBlock" hidden>
           <div class="social-proof-quote" id="socialProofQuote"></div>
@@ -1319,6 +1331,11 @@ var DEFAULT_PUBLIC_CONTENT = {
   maintenanceEnabled: 'false',
   maintenanceTitleDe: 'Wir sind gleich wieder da.',
   maintenanceMessageDe: 'Das Buchungstool wird gerade aktualisiert. Bitte versuche es später erneut.',
+  recoveryEnabled: 'false',
+  recoveryInlineNoticeDe: 'Wenn du deine Anfrage nicht abschließt, senden wir dir eventuell eine kurze Erinnerung zu deiner begonnenen Anfrage.',
+  trustFaqEnabled: 'true',
+  trustFaqTitleDe: 'Gut zu wissen',
+  trustFaqItemsDe: 'Noch keine verbindliche Buchung|Mit dem Absenden stellst du nur eine Anfrage - wir melden uns persönlich.\nAntwort innerhalb von 24 Stunden|Du bekommst ein individuelles Angebot von unserem Team.\nRabattcode möglich|Falls ein gültiger Rabattcode eingetragen ist, berücksichtigen wir ihn im Angebot.',
   bookingTitle: 'Termin anfragen.',
   bookingSub: 'In wenigen Schritten zu deiner persönlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
   smallGroupEnabled: 'true',
@@ -1626,7 +1643,8 @@ var state = {
   newsletter: true,
   services: {},
   selectedSpaceId: '',
-  consultationRequested: false
+  consultationRequested: false,
+  draftId: localStorage.getItem('plato_abandoned_draft_id') || ''
 };
 
 var contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
@@ -1637,6 +1655,8 @@ var spaces = [];
 var dataVersion = '';
 var dataPollTimer = null;
 var contentLoading = true;
+var draftSaveTimer = null;
+var lastDraftSnapshot = '';
 var runtimeSettings = {
   nightRate: 150,
   minGuests: 50,
@@ -2100,6 +2120,38 @@ function applyPsychologyFeatures() {
       spBlock.hidden = true;
     }
   }
+
+  var recoveryNotice = document.getElementById('recoveryNotice');
+  if (recoveryNotice) {
+    var recoveryEnabled = cv('recoveryEnabled') === 'true';
+    recoveryNotice.textContent = cv('recoveryInlineNoticeDe');
+    recoveryNotice.hidden = !recoveryEnabled || !recoveryNotice.textContent;
+  }
+
+  renderTrustFaq();
+}
+
+function renderTrustFaq() {
+  var block = document.getElementById('trustFaqBlock');
+  if (!block) return;
+  if (getContentValue('trustFaqEnabled') !== 'true') {
+    block.hidden = true;
+    return;
+  }
+  var raw = getContentValue('trustFaqItemsDe');
+  var items = raw.split(/\n+/).map(function(line) {
+    var parts = line.split('|');
+    return { q: (parts[0] || '').trim(), a: (parts.slice(1).join('|') || '').trim() };
+  }).filter(function(item) { return item.q || item.a; });
+  if (!items.length) {
+    block.hidden = true;
+    return;
+  }
+  block.innerHTML = '<div class="trust-faq-title">' + esc(getContentValue('trustFaqTitleDe') || 'Gut zu wissen') + '</div>' +
+    items.map(function(item) {
+      return '<div class="trust-faq-item"><div class="trust-faq-q">' + esc(item.q) + '</div><div class="trust-faq-a">' + esc(item.a) + '</div></div>';
+    }).join('');
+  block.hidden = false;
 }
 
 function renderSpacesPanel() {
@@ -3763,6 +3815,7 @@ function updateSummary() {
   }
   var perPerson = state.guests > 0 && total > 0 ? Math.round(total / state.guests * 100) / 100 : 0;
   document.getElementById('sum-total').textContent = perPerson > 0 ? fmtEur(perPerson) + ui.perGuest : '– €/Gast';
+  scheduleAbandonedDraftSave();
 }
 
 function onStepClick(target) {
@@ -3794,6 +3847,7 @@ function goStep(step) {
     if (index < step) el.classList.add('done');
   });
   if (isInIframe()) { notifyParentScrollTop(); } else { document.getElementById('booking').scrollIntoView({ behavior: 'smooth' }); }
+  scheduleAbandonedDraftSave();
   notifyHeight();
 }
 
@@ -3855,6 +3909,8 @@ function showSuccessPanel(bookingId) {
     document.getElementById('successId').style.display = 'inline-block';
     document.getElementById('successIdVal').textContent = bookingId;
   }
+  localStorage.removeItem('plato_abandoned_draft_id');
+  lastDraftSnapshot = '';
   if (isInIframe()) { notifyParentScrollTop(); } else { window.scrollTo({ top: document.getElementById('booking').offsetTop, behavior: 'smooth' }); }
   notifyHeight();
 }
@@ -3965,6 +4021,7 @@ function applyDiscountCode() {
       state.discountCode = result.discount.code || code;
       if (input) input.value = state.discountCode;
       renderDiscountState('', 'success');
+      trackConversionEvent('discount_applied', { code: state.discountCode, amount: state.discount.amount || 0 });
       updateSummary();
     } else {
       state.discount = null;
@@ -3982,8 +4039,100 @@ function applyDiscountCode() {
   });
 }
 
+function ensureDraftId() {
+  if (!state.draftId) {
+    state.draftId = 'DRAFT-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+    localStorage.setItem('plato_abandoned_draft_id', state.draftId);
+  }
+  return state.draftId;
+}
+
+function isValidEmailValue(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+function hasMeaningfulDraftData(payload) {
+  if (!payload) return false;
+  if ((parseInt(payload.currentStep, 10) || 0) >= 2) return true;
+  if (payload.date || payload.occasion || payload.selectedPackage || payload.packageName) return true;
+  return Array.isArray(payload.services) && payload.services.length > 0;
+}
+
+function scheduleAbandonedDraftSave() {
+  if (getContentValue('recoveryEnabled') !== 'true') return;
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(saveAbandonedDraftNow, 900);
+}
+
+function saveAbandonedDraftNow() {
+  if (getContentValue('recoveryEnabled') !== 'true') return;
+  var payload;
+  try {
+    payload = buildSubmitPayload();
+  } catch (err) {
+    return;
+  }
+  if (!isValidEmailValue(payload.email) || !hasMeaningfulDraftData(payload)) return;
+  payload.draftId = ensureDraftId();
+  payload.currentStep = state.currentStep;
+  payload.packageName = currentPackage() ? currentPackage().name : '';
+  var snapshot = JSON.stringify({
+    draftId: payload.draftId,
+    email: payload.email,
+    currentStep: payload.currentStep,
+    date: payload.date,
+    time: payload.time,
+    duration: payload.duration,
+    guests: payload.guests,
+    occasion: payload.occasion,
+    selectedPackage: payload.selectedPackage,
+    services: payload.services,
+    discountCode: payload.discountCode,
+    fname: payload.fname,
+    lname: payload.lname,
+    phone: payload.phone,
+    source: payload.source,
+  });
+  if (snapshot === lastDraftSnapshot) return;
+  lastDraftSnapshot = snapshot;
+  fetch(GAS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'saveAbandonedRequest', payload: payload })
+  }).then(function(r) {
+    return r.ok ? r.json() : null;
+  }).then(function(result) {
+    if (result && result.draftId) {
+      state.draftId = result.draftId;
+      localStorage.setItem('plato_abandoned_draft_id', state.draftId);
+    }
+  }).catch(function() {});
+}
+
+function trackConversionEvent(name, details) {
+  var payload = {
+    event: name,
+    draftId: state.draftId || '',
+    email: document.getElementById('email') ? document.getElementById('email').value.trim() : '',
+    step: state.currentStep,
+    date: state.selectedDate,
+    guests: state.guests,
+    occasion: state.occasion,
+    packageName: currentPackage() ? currentPackage().name : '',
+    discountCode: state.discountCode || '',
+    details: details || {}
+  };
+  fetch(GAS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'trackConversionEvent', payload: payload })
+  }).catch(function() {});
+}
+
 function buildSubmitPayload() {
   return {
+    draftId: state.draftId || '',
+    currentStep: state.currentStep,
     date: state.selectedDate,
     time: state.selectedTime,
     endTime: state.endTime,
@@ -3992,6 +4141,7 @@ function buildSubmitPayload() {
     occasion: state.occasion,
     occasionNote: document.getElementById('occasionNote').value.trim(),
     selectedPackage: state.selectedPackage,
+    packageName: currentPackage() ? currentPackage().name : '',
     discountCode: state.discountCode || String(document.getElementById('discountCode') && document.getElementById('discountCode').value || '').trim(),
     services: selectedServicesInOrder().map(function(service) {
       return { id: service.id, price: service.price, optionId: service.optionId || '' };
@@ -4243,6 +4393,12 @@ function bindStaticEvents() {
   document.getElementById('phone').addEventListener('input', function() {
     document.getElementById('phoneControl').classList.remove('invalid');
     document.getElementById('err-phone').style.display = 'none';
+    scheduleAbandonedDraftSave();
+  });
+  ['fname', 'lname', 'email', 'message', 'source', 'discountCode'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', scheduleAbandonedDraftSave);
+    if (el && el.tagName === 'SELECT') el.addEventListener('change', scheduleAbandonedDraftSave);
   });
   document.addEventListener('error', function(event) {
     var img = event.target;
