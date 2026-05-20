@@ -1,7 +1,3 @@
-
-
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -654,6 +650,11 @@ section{padding:120px 56px;}
 .pkg-module-tag{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;background:var(--cream-2);color:var(--stone);padding:3px 8px;border-radius:4px;}
 
 /* Services */
+.module-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 0 14px;padding-bottom:2px;}
+.module-tabs::-webkit-scrollbar{display:none;}
+.module-tab{flex:0 0 auto;padding:10px 18px;border-radius:var(--radius);border:1px solid var(--border);background:white;color:var(--stone);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.module-tab:hover{border-color:var(--gold-line);color:var(--dark);}
+.module-tab.active{background:var(--dark);border-color:var(--dark);color:var(--beige);}
 .service-list{display:flex;flex-direction:column;gap:10px;}
 .service-card{
   border:1px solid var(--border);border-radius:var(--radius);background:white;
@@ -716,6 +717,11 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 }
 .field-input:focus{border-color:var(--gold);}
 .field-input::placeholder{color:rgba(107,99,85,.5);}
+.phone-control{display:grid;grid-template-columns:minmax(160px,220px) 1fr;border:1px solid var(--border);border-radius:var(--radius);background:#fff;overflow:hidden;transition:border .15s;}
+.phone-control:focus-within{border-color:var(--gold);}
+.phone-control.invalid{border-color:var(--red);}
+.phone-country{border:0;border-right:1px solid var(--border);border-radius:0;background:var(--cream);padding:14px 34px 14px 12px;font-family:var(--sans);font-size:13px;color:var(--dark);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23BA9F5D' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+.phone-input{border:0;border-radius:0;background:#fff;padding:14px 16px;font-family:var(--sans);font-size:14px;color:var(--dark);outline:none;min-width:0;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .error-msg{font-size:11px;color:var(--red);margin-top:4px;display:none;}
 .field-input.invalid{border-color:var(--red);}
@@ -949,6 +955,9 @@ footer{
   .occasion-card .oc-label,.oc-label{font-size:12px;line-height:1.25;overflow-wrap:anywhere;}
   .pkg-card,.service-card{padding:14px;}
   .pkg-card-title,.service-name{font-size:15px;line-height:1.25;}
+  .module-tab{padding:9px 13px;font-size:10px;}
+  .phone-control{grid-template-columns:150px 1fr;}
+  .phone-country,.phone-input{font-size:16px;}
   .smallgroup-grid{grid-template-columns:1fr;}
   .smallgroup-card .sg-title,.sg-title{font-size:14px;}
   .social-proof-block{padding:16px 18px;}
@@ -1124,6 +1133,7 @@ html.iframe-mode .hero { min-height: 0; }
         <div class="field-block">
           <div class="module-headline">Gestalte deinen Abend <em>individuell.</em></div>
           <div class="section-label">Module</div>
+          <div class="module-tabs" id="moduleTabs"></div>
           <div class="service-list" id="serviceList"></div>
           <div class="service-rules-note" id="serviceRulesNote"></div>
         </div>
@@ -1163,7 +1173,10 @@ html.iframe-mode .hero { min-height: 0; }
         </div>
         <div class="field-group">
           <label class="field-label">Telefon</label>
-          <input class="field-input" id="phone" type="tel" placeholder="+49 170 1234567">
+          <div class="phone-control" id="phoneControl">
+            <select class="phone-country" id="phoneCountry" aria-label="Land auswählen"></select>
+            <input class="phone-input" id="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="170 1234567">
+          </div>
           <div class="error-msg" id="err-phone">Bitte Telefonnummer eingeben.</div>
         </div>
         <div class="field-group">
@@ -1323,7 +1336,7 @@ var UI = {
       fname: 'Max',
       lname: 'Mustermann',
       email: 'max@beispiel.de',
-      phone: '+49 170 1234567',
+      phone: '170 1234567',
       message: 'Gibt es noch etwas, das wir wissen sollten?'
     },
     newsletterHtml: '<strong>Newsletter</strong> – ich möchte über kommende Events im °Plato informiert werden.',
@@ -1439,7 +1452,7 @@ var UI = {
       fname: 'Max',
       lname: 'Mustermann',
       email: 'max@example.com',
-      phone: '+49 170 1234567',
+      phone: '170 1234567',
       message: 'Anything else we should know?'
     },
     newsletterHtml: '<strong>Newsletter</strong> - keep me updated about upcoming events at °Plato.',
@@ -1565,6 +1578,7 @@ var state = {
 
 var contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 var services = [];
+var serviceCategories = [];
 var packages = [];
 var spaces = [];
 var dataVersion = '';
@@ -1586,6 +1600,18 @@ var calYear = calToday.getFullYear();
 var calMonth = calToday.getMonth();
 var pkgOpen = true;
 var lastRuleMessages = [];
+var activeServiceCategory = '';
+
+var PHONE_COUNTRIES = [
+  { code: 'DE', flag: '🇩🇪', name: 'Deutschland', dial: '+49' },
+  { code: 'AT', flag: '🇦🇹', name: 'Österreich', dial: '+43' },
+  { code: 'CH', flag: '🇨🇭', name: 'Schweiz', dial: '+41' },
+  { code: 'FR', flag: '🇫🇷', name: 'Frankreich', dial: '+33' },
+  { code: 'NL', flag: '🇳🇱', name: 'Niederlande', dial: '+31' },
+  { code: 'BE', flag: '🇧🇪', name: 'Belgien', dial: '+32' },
+  { code: 'GB', flag: '🇬🇧', name: 'Vereinigtes Königreich', dial: '+44' },
+  { code: 'US', flag: '🇺🇸', name: 'USA', dial: '+1' }
+];
 
 applyTweaks(TWEAK_DEFAULTS);
 
@@ -1663,7 +1689,7 @@ ICON_SVGS['handshake-premium'] = '<svg viewBox="0 0 32 32" aria-hidden="true"><p
 function renderCatalogIcon(icon) {
   var key = String(icon || '').trim();
   if (/^(https?:\/\/|data:image\/)/i.test(key)) {
-    return '<img class="catalog-icon-img" alt="" loading="lazy" src="' + esc(key) + '">';
+    return '<img class="catalog-icon-img" alt="" src="' + esc(key) + '">';
   }
   if (ICON_SVGS[key]) return ICON_SVGS[key];
   return '<span class="legacy-icon">' + esc(key) + '</span>';
@@ -1682,7 +1708,43 @@ function renderOccasionIcon(occ) {
 function renderCatalogImage(url, cls) {
   var src = String(url || '').trim();
   if (!src) return '';
-  return '<img class="' + cls + '" alt="" loading="lazy" src="' + esc(src) + '">';
+  return '<img class="' + cls + '" alt="" src="' + esc(src) + '">';
+}
+
+function isImageUrl(value) {
+  return /^(https?:\/\/|data:image\/)/i.test(String(value || '').trim());
+}
+
+function preloadImage(url) {
+  var src = String(url || '').trim();
+  if (!isImageUrl(src)) return;
+  var img = new Image();
+  img.decoding = 'async';
+  img.src = src;
+}
+
+function preloadVisibleCatalogAssets() {
+  var urls = [];
+  loadedOccasions.forEach(function(occ) {
+    if (isImageUrl(occ.icon)) urls.push(occ.icon);
+  });
+  getActivePackages().forEach(function(pkg) {
+    if (isImageUrl(pkg.icon)) urls.push(pkg.icon);
+    if (isImageUrl(pkg.imageUrl)) urls.push(pkg.imageUrl);
+  });
+  var avail = getActiveServices().filter(isAvailableForSpace);
+  var tabs = buildModuleCategoryTabs(avail);
+  var activeTab = tabs.find(function(tab) { return tab.id === activeServiceCategory; }) || tabs[0];
+  var visibleIds = {};
+  (activeTab && activeTab.moduleIds || []).forEach(function(id) { visibleIds[id] = true; });
+  avail.filter(function(service) { return visibleIds[service.id]; }).forEach(function(service) {
+    if (isImageUrl(service.icon)) urls.push(service.icon);
+    if (isImageUrl(service.imageUrl)) urls.push(service.imageUrl);
+    (service.options || []).forEach(function(option) {
+      if (isImageUrl(option.imageUrl)) urls.push(option.imageUrl);
+    });
+  });
+  urls.filter(function(url, index) { return urls.indexOf(url) === index; }).slice(0, 24).forEach(preloadImage);
 }
 
 function renderRichText(value) {
@@ -2303,12 +2365,49 @@ function renderSourceOptions() {
   select.innerHTML = html;
 }
 
+function renderPhoneCountries() {
+  var select = document.getElementById('phoneCountry');
+  if (!select) return;
+  var current = select.value || 'DE';
+  select.innerHTML = PHONE_COUNTRIES.map(function(country) {
+    return '<option value="' + esc(country.code) + '"' + (country.code === current ? ' selected' : '') + '>' +
+      esc(country.flag + ' ' + country.name + ' ' + country.dial) +
+      '</option>';
+  }).join('');
+  if (!select.value) select.value = 'DE';
+}
+
+function selectedPhoneCountry() {
+  var code = (document.getElementById('phoneCountry') && document.getElementById('phoneCountry').value) || 'DE';
+  return PHONE_COUNTRIES.find(function(country) { return country.code === code; }) || PHONE_COUNTRIES[0];
+}
+
+function normalizeLocalPhone(value) {
+  return String(value || '').replace(/[^\d\s()./-]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function fullPhoneValue() {
+  var local = normalizeLocalPhone(document.getElementById('phone').value);
+  var country = selectedPhoneCountry();
+  var national = local.replace(/^0+/, '').trim();
+  return national ? country.dial + ' ' + national : '';
+}
+
+function isValidPhone() {
+  var digits = fullPhoneValue().replace(/\D/g, '');
+  return digits.length >= 8 && digits.length <= 15;
+}
+
 function getActiveServices() {
   return services.filter(function(service) { return service.active !== false; });
 }
 
 function getActivePackages() {
   return packages.filter(function(pkg) { return pkg.active !== false; });
+}
+
+function getActiveServiceCategories() {
+  return serviceCategories.filter(function(category) { return category.active !== false; });
 }
 
 function findService(id) {
@@ -2407,6 +2506,20 @@ function normalizePackages(list) {
       allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : []
     };
   }).filter(function(pkg) { return pkg.id; });
+}
+
+function normalizeServiceCategories(list) {
+  return (Array.isArray(list) ? list : []).map(function(category, index) {
+    return {
+      id: String(category.id || ''),
+      labelDe: String(category.labelDe || category.label || ''),
+      labelEn: String(category.labelEn || category.labelDe || category.label || ''),
+      order: Number(category.order || (index + 1)),
+      active: category.active !== false,
+      moduleIds: Array.isArray(category.moduleIds) ? category.moduleIds.map(String) : []
+    };
+  }).filter(function(category) { return category.id; })
+    .sort(function(a, b) { return a.order - b.order; });
 }
 
 function defaultServicePrice(service) {
@@ -3026,10 +3139,68 @@ function budgetTrackStyle(service, value) {
   return 'linear-gradient(to right,var(--gold) 0%,var(--gold) ' + pct.toFixed(1) + '%,#d0cac0 ' + pct.toFixed(1) + '%,#d0cac0 100%)';
 }
 
+function categoryLabel(category) {
+  if (!category) return state.lang === 'en' ? 'All Modules' : 'Alle Module';
+  if (category.id === '__more') return state.lang === 'en' ? 'More Modules' : 'Weitere Module';
+  return state.lang === 'en' ? (category.labelEn || category.labelDe || category.id) : (category.labelDe || category.labelEn || category.id);
+}
+
+function buildModuleCategoryTabs(avail) {
+  var activeIds = {};
+  avail.forEach(function(service) { activeIds[service.id] = true; });
+  var assignedIds = {};
+  var tabs = getActiveServiceCategories().map(function(category) {
+    var ids = (category.moduleIds || []).filter(function(id) {
+      if (activeIds[id]) {
+        assignedIds[id] = true;
+        return true;
+      }
+      return false;
+    });
+    return Object.assign({}, category, { moduleIds: ids });
+  }).filter(function(category) { return category.moduleIds.length > 0; });
+  var unassigned = avail.map(function(service) { return service.id; }).filter(function(id) { return !assignedIds[id]; });
+  if (unassigned.length && tabs.length) {
+    tabs.push({ id: '__more', labelDe: 'Weitere Module', labelEn: 'More Modules', order: 9999, active: true, moduleIds: unassigned });
+  }
+  if (!tabs.length) {
+    tabs = [{ id: '__all', labelDe: 'Alle Module', labelEn: 'All Modules', order: 1, active: true, moduleIds: avail.map(function(service) { return service.id; }) }];
+  }
+  if (!activeServiceCategory || !tabs.some(function(tab) { return tab.id === activeServiceCategory; })) {
+    activeServiceCategory = tabs[0] ? tabs[0].id : '';
+  }
+  return tabs;
+}
+
+function renderModuleTabs(tabs) {
+  var container = document.getElementById('moduleTabs');
+  if (!container) return;
+  if (!tabs.length || (tabs.length === 1 && tabs[0].id === '__all')) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = tabs.map(function(tab) {
+    return '<button class="module-tab' + (tab.id === activeServiceCategory ? ' active' : '') + '" type="button" data-module-category="' + esc(tab.id) + '">' + esc(categoryLabel(tab)) + '</button>';
+  }).join('');
+  container.querySelectorAll('[data-module-category]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      activeServiceCategory = btn.getAttribute('data-module-category');
+      renderServiceList();
+      preloadVisibleCatalogAssets();
+    });
+  });
+}
+
 function renderServiceList() {
   var ui = currentUi();
   var list = document.getElementById('serviceList');
   var avail = getActiveServices().filter(isAvailableForSpace);
+  var tabs = buildModuleCategoryTabs(avail);
+  renderModuleTabs(tabs);
+  var activeTab = tabs.find(function(tab) { return tab.id === activeServiceCategory; }) || tabs[0];
+  var visibleIds = {};
+  (activeTab && activeTab.moduleIds || []).forEach(function(id) { visibleIds[id] = true; });
+  avail = avail.filter(function(service) { return visibleIds[service.id]; });
   if (!avail.length) {
     if (contentLoading) {
       list.innerHTML = '<div class="module-loading-card"><span class="content-loading-dot"></span><span>Module werden geladen...</span></div>';
@@ -3538,7 +3709,6 @@ function validateContactFields() {
   var fname = document.getElementById('fname').value.trim();
   var lname = document.getElementById('lname').value.trim();
   var email = document.getElementById('email').value.trim();
-  var phone = document.getElementById('phone').value.trim();
   var valid = true;
   function setFieldState(id, errorId, ok, message) {
     var field = document.getElementById(id);
@@ -3551,7 +3721,13 @@ function validateContactFields() {
   setFieldState('fname', 'err-fname', fname.length > 0, ui.errors.fname);
   setFieldState('lname', 'err-lname', lname.length > 0, ui.errors.lname);
   setFieldState('email', 'err-email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), ui.errors.email);
-  setFieldState('phone', 'err-phone', phone.length > 0, ui.errors.phone);
+  var phoneOk = isValidPhone();
+  document.getElementById('phoneControl').classList.toggle('invalid', !phoneOk);
+  document.getElementById('err-phone').style.display = phoneOk ? 'none' : 'block';
+  if (!phoneOk) {
+    document.getElementById('err-phone').textContent = ui.errors.phone;
+    valid = false;
+  }
   return valid;
 }
 
@@ -3582,7 +3758,7 @@ function buildSubmitPayload() {
     fname: document.getElementById('fname').value.trim(),
     lname: document.getElementById('lname').value.trim(),
     email: document.getElementById('email').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
+    phone: fullPhoneValue(),
     message: document.getElementById('message').value.trim(),
     source: document.getElementById('source').value,
     newsletter: state.newsletter,
@@ -3664,6 +3840,11 @@ function seedDevData() {
     { id: 'pkg_hochzeit', icon: 'ring', name: 'Hochzeit', desc: 'Vollständig ausgestattet für den schönsten Abend.', modules: ['catering', 'bar', 'deco', 'music'], occasions: ['Hochzeit'], active: true },
     { id: 'pkg_vesper', icon: 'vesper-board', name: 'Tagespaket Vesper', desc: 'Unser Tagespaket für entspannte Mittagsveranstaltungen: ein herzhaftes Vesper mit regionalem Charakter, dazu pro Gast ein 0,5 l Woinemer Bier und Tischwasser inklusive. Buchbar ab 50 Gästen, sonntags oder werktags zwischen 12:00 und 14:00 Uhr.', modules: ['vesper', 'woinemer_bier_05', 'tischwasser'], occasions: [], packagePricePerGuest: 35, minGuests: 50, allowedWeekdays: ['0', '1', '2', '3', '4', '5'], startTimeMin: '12:00', startTimeMax: '14:00', active: true }
   ]);
+  serviceCategories = normalizeServiceCategories([
+    { id: 'getraenke', labelDe: 'Getränke', labelEn: 'Drinks', order: 1, moduleIds: ['bar', 'tischwasser', 'woinemer_bier_05'] },
+    { id: 'essen', labelDe: 'Essen', labelEn: 'Food', order: 2, moduleIds: ['catering', 'livecooking', 'vesper'] },
+    { id: 'technik_deko', labelDe: 'Technik & Deko', labelEn: 'Tech & Decor', order: 3, moduleIds: ['deco', 'music'] }
+  ]);
   contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 }
 
@@ -3693,6 +3874,7 @@ async function loadRemoteData(options) {
     if (contentResult && contentResult.success) {
       contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT, contentResult.content || {});
       services = normalizeServices(contentResult.services || []);
+      serviceCategories = normalizeServiceCategories(contentResult.serviceCategories || []);
       packages = normalizePackages(contentResult.packages || []);
       spaces = Array.isArray(contentResult.spaces) ? contentResult.spaces : [];
       dataVersion = contentResult.version || dataVersion;
@@ -3716,6 +3898,7 @@ async function loadRemoteData(options) {
   renderSpacesPanel();
   updateSmallGroupPanel();
   updateSummary();
+  preloadVisibleCatalogAssets();
   notifyHeight();
 }
 
@@ -3753,10 +3936,12 @@ async function bootPublicPage() {
       return;
     }
     document.body.classList.add('public-ready');
-    await loadRemoteData();
+    await loadRemoteData({ showLoading: false });
+    setContentLoading(false);
   } catch (err) {
     document.body.classList.add('public-ready');
-    await loadRemoteData();
+    await loadRemoteData({ showLoading: false });
+    setContentLoading(false);
   }
 }
 
@@ -3807,9 +3992,18 @@ function bindStaticEvents() {
     onTimeChange();
   });
   document.getElementById('duration').addEventListener('change', onTimeChange);
+  document.getElementById('phoneCountry').addEventListener('change', function() {
+    document.getElementById('phoneControl').classList.remove('invalid');
+    document.getElementById('err-phone').style.display = 'none';
+  });
+  document.getElementById('phone').addEventListener('input', function() {
+    document.getElementById('phoneControl').classList.remove('invalid');
+    document.getElementById('err-phone').style.display = 'none';
+  });
 }
 
 bindStaticEvents();
+renderPhoneCountries();
 renderOccasionCards();
 buildStartTimeOptions();
 updateDurationOptions();
