@@ -1347,7 +1347,7 @@ var DEFAULT_PUBLIC_CONTENT = {
   trustFaqItemsDe: 'Noch keine verbindliche Buchung|Mit dem Absenden stellst du nur eine Anfrage - wir melden uns persönlich.\nAntwort innerhalb von 24 Stunden|Du bekommst ein individuelles Angebot von unserem Team.\nRabattcode möglich|Falls ein gültiger Rabattcode eingetragen ist, berücksichtigen wir ihn im Angebot.',
   publicPollingEnabled: 'true',
   publicPollingSeconds: '300',
-  bookingTitle: 'Termin anfragen.',
+  bookingTitle: 'Termin unverbindlich anfragen.',
   bookingSub: 'In wenigen Schritten zu deiner persönlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
   smallGroupEnabled: 'true',
   smallGroupThreshold: '50',
@@ -1361,7 +1361,7 @@ var UI = {
   de: {
     locale: 'de-DE',
     nav: ['Anlässe', 'Das Gewölbe', 'Pakete'],
-    bookCta: 'Termin anfragen',
+    bookCta: 'Termin unverbindlich anfragen',
     bookNow: 'Jetzt anfragen',
     discover: 'Gewölbe entdecken',
     introEyebrow: 'Willkommen im Gewölbe',
@@ -1375,7 +1375,7 @@ var UI = {
     galleryEyebrow: 'Einblicke',
     galleryTitle: 'Das <em>Gewölbe.</em>',
     bookingEyebrow: 'Buchung',
-    bookingTitle: 'Termin <em>anfragen.</em>',
+    bookingTitle: 'Termin unverbindlich <em>anfragen.</em>',
     bookingSub: 'In wenigen Schritten zu deiner personlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
     steps: ['Datum', 'Details', 'Leistungen', 'Kontakt'],
     panelTitles: [
@@ -1669,6 +1669,7 @@ var dataPollTimer = null;
 var contentLoading = true;
 var draftSaveTimer = null;
 var lastDraftSnapshot = '';
+var recoveryResumeAttempted = false;
 var runtimeSettings = {
   nightRate: 150,
   minGuests: 50,
@@ -4189,6 +4190,97 @@ function saveAbandonedDraftNow() {
   }).catch(function() {});
 }
 
+function getUrlParam(name) {
+  try { return new URLSearchParams(window.location.search || '').get(name) || ''; }
+  catch (err) { return ''; }
+}
+
+function applyRecoveredDraftPayload(payload) {
+  if (!payload) return;
+  state.draftId = payload.draftId || state.draftId || '';
+  if (state.draftId) localStorage.setItem('plato_abandoned_draft_id', state.draftId);
+  state.selectedDate = payload.date || state.selectedDate;
+  state.selectedTime = payload.startTime || payload.time || state.selectedTime;
+  state.duration = Number(payload.duration || state.duration) || state.duration;
+  state.guests = Number(payload.guests || state.guests) || state.guests;
+  state.occasion = payload.occasion || state.occasion;
+  state.selectedPackage = payload.selectedPackage || payload.packageId || state.selectedPackage;
+  state.discountCode = payload.discountCode || state.discountCode;
+  state.selectedSpaceId = payload.selectedSpaceId || state.selectedSpaceId;
+  state.consultationRequested = !!payload.consultationRequested;
+  if (Array.isArray(payload.services)) {
+    var selectedIds = {};
+    payload.services.forEach(function(item) {
+      if (item && item.id && findService(item.id)) selectedIds[item.id] = true;
+    });
+    if (Object.keys(selectedIds).length) {
+      var meta = buildSelectionMeta(selectedIds);
+      commitServiceSelection(selectedIds, !!state.selectedPackage, meta.covered, meta.upgrades);
+      payload.services.forEach(function(item) {
+        if (item && item.id && state.services[item.id] && item.optionId) {
+          state.services[item.id].optionId = item.optionId;
+        }
+      });
+    }
+  }
+  [
+    ['fname', payload.fname || payload.firstName || ''],
+    ['lname', payload.lname || payload.lastName || ''],
+    ['email', payload.email || ''],
+    ['message', payload.message || ''],
+    ['source', payload.source || ''],
+    ['discountCode', payload.discountCode || '']
+  ].forEach(function(pair) {
+    var el = document.getElementById(pair[0]);
+    if (el && pair[1]) el.value = pair[1];
+  });
+  if (payload.phone) {
+    var phone = document.getElementById('phone');
+    if (phone) phone.value = String(payload.phone).replace(/^\+\d+\s*/, '');
+  }
+  updateDurationOptions();
+  if (state.selectedTime) {
+    var timeEl = document.getElementById('startTime');
+    if (timeEl) timeEl.value = state.selectedTime;
+  }
+  if (state.duration) {
+    var durationEl = document.getElementById('duration');
+    if (durationEl) durationEl.value = String(state.duration);
+  }
+  onTimeChange();
+  renderCalendar();
+  renderOccasionCards();
+  renderPackages();
+  renderServiceList();
+  renderRuleMessages();
+  renderRecommendations();
+  renderSpacesPanel();
+  updateSmallGroupPanel();
+  renderDiscountState('', state.discountCode ? 'success' : '');
+  updateSummary();
+  goStep(4);
+}
+
+function maybeResumeAbandonedDraft() {
+  if (recoveryResumeAttempted) return Promise.resolve();
+  recoveryResumeAttempted = true;
+  var draftId = getUrlParam('draft');
+  var email = getUrlParam('email');
+  if (!draftId || !email) return Promise.resolve();
+  return fetch(GAS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'getAbandonedRequestDraft', payload: { draftId: draftId, email: email } })
+  }).then(function(r) {
+    return r.ok ? r.json() : null;
+  }).then(function(result) {
+    if (result && result.success && result.draft) {
+      applyRecoveredDraftPayload(result.draft);
+      trackConversionEvent('recovery_resume_clicked', { draftId: draftId });
+    }
+  }).catch(function() {});
+}
+
 function trackConversionEvent(name, details) {
   var payload = {
     event: name,
@@ -4404,6 +4496,7 @@ async function bootPublicPage() {
   renderNewsletterState();
   try {
     await loadRemoteData({ showLoading: false });
+    await maybeResumeAbandonedDraft();
     buildStartTimeOptions();
     updateDurationOptions();
     updateAvailabilityNote();
