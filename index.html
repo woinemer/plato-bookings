@@ -717,10 +717,14 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 }
 .field-input:focus{border-color:var(--gold);}
 .field-input::placeholder{color:rgba(107,99,85,.5);}
-.phone-control{display:grid;grid-template-columns:minmax(160px,220px) 1fr;border:1px solid var(--border);border-radius:var(--radius);background:#fff;overflow:hidden;transition:border .15s;}
+.phone-control{display:grid;grid-template-columns:112px 1fr;border:1px solid var(--border);border-radius:var(--radius);background:#fff;overflow:hidden;transition:border .15s;}
 .phone-control:focus-within{border-color:var(--gold);}
 .phone-control.invalid{border-color:var(--red);}
-.phone-country{border:0;border-right:1px solid var(--border);border-radius:0;background:var(--cream);padding:14px 34px 14px 12px;font-family:var(--sans);font-size:13px;color:var(--dark);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23BA9F5D' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+.phone-country-wrap{position:relative;border-right:1px solid var(--border);background:var(--cream);min-width:0;}
+.phone-country-display{display:flex;align-items:center;height:100%;padding:0 28px 0 12px;font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;pointer-events:none;}
+.phone-country-wrap:after{content:"";position:absolute;right:11px;top:50%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid var(--gold);transform:translateY(-50%);pointer-events:none;}
+.phone-country{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;background:transparent;padding:0;font-family:var(--sans);font-size:13px;color:transparent;outline:none;appearance:none;cursor:pointer;}
+.phone-country option{color:var(--dark);}
 .phone-input{border:0;border-radius:0;background:#fff;padding:14px 16px;font-family:var(--sans);font-size:14px;color:var(--dark);outline:none;min-width:0;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .error-msg{font-size:11px;color:var(--red);margin-top:4px;display:none;}
@@ -956,7 +960,7 @@ footer{
   .pkg-card,.service-card{padding:14px;}
   .pkg-card-title,.service-name{font-size:15px;line-height:1.25;}
   .module-tab{padding:9px 13px;font-size:10px;}
-  .phone-control{grid-template-columns:150px 1fr;}
+  .phone-control{grid-template-columns:106px 1fr;}
   .phone-country,.phone-input{font-size:16px;}
   .smallgroup-grid{grid-template-columns:1fr;}
   .smallgroup-card .sg-title,.sg-title{font-size:14px;}
@@ -1174,7 +1178,10 @@ html.iframe-mode .hero { min-height: 0; }
         <div class="field-group">
           <label class="field-label">Telefon</label>
           <div class="phone-control" id="phoneControl">
-            <select class="phone-country" id="phoneCountry" aria-label="Land auswählen"></select>
+            <div class="phone-country-wrap">
+              <span class="phone-country-display" id="phoneCountryDisplay">DE +49</span>
+              <select class="phone-country" id="phoneCountry" aria-label="Land auswählen"></select>
+            </div>
             <input class="phone-input" id="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="170 1234567">
           </div>
           <div class="error-msg" id="err-phone">Bitte Telefonnummer eingeben.</div>
@@ -1259,23 +1266,15 @@ var DEFAULT_PUBLIC_CONTENT = {
   blockedWeekdays: '',
   maintenanceEnabled: 'false',
   maintenanceTitleDe: 'Wir sind gleich wieder da.',
-  maintenanceTitleEn: 'We will be right back.',
   maintenanceMessageDe: 'Das Buchungstool wird gerade aktualisiert. Bitte versuche es später erneut.',
-  maintenanceMessageEn: 'The booking tool is currently being updated. Please try again later.',
   bookingTitle: 'Termin anfragen.',
-  bookingTitle_en: 'Request a date.',
   bookingSub: 'In wenigen Schritten zu deiner persönlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
-  bookingSub_en: 'A personal inquiry in just a few steps - we usually reply within 24 hours.',
   smallGroupEnabled: 'true',
   smallGroupThreshold: '50',
   smallGroupHeadlineDe: 'Kleinere Gruppe? Wir haben passende Räume.',
-  smallGroupHeadlineEn: 'Smaller group? We have the right space for you.',
   smallGroupBodyDe: 'Das Plato Gewölbe ist auf Gruppen ab 50 Gästen ausgelegt. Für kleinere Anlässe haben wir andere wunderschöne Räume in unserer Brauerei. Wähle einen Raum aus oder bitte um Beratung - wir kümmern uns persönlich.',
-  smallGroupBodyEn: 'The Plato Gewölbe is designed for groups of 50+. For smaller occasions we have other beautiful rooms in our brewery. Pick a space or request consultation - we will personally take care of you.',
   smallGroupConsultationLabelDe: 'Bitte um Beratung',
-  smallGroupConsultationLabelEn: 'Request consultation',
-  smallGroupContinueHintDe: 'Du kannst trotzdem ganz normal weiter buchen - wir melden uns dann mit einem passenden Vorschlag.',
-  smallGroupContinueHintEn: 'You can continue your booking as usual - we will get back to you with a matching suggestion.'
+  smallGroupContinueHintDe: 'Du kannst trotzdem ganz normal weiter buchen - wir melden uns dann mit einem passenden Vorschlag.'
 };
 
 var UI = {
@@ -1607,10 +1606,34 @@ var PHONE_COUNTRIES = [
   { code: 'AT', flag: '🇦🇹', name: 'Österreich', dial: '+43' },
   { code: 'CH', flag: '🇨🇭', name: 'Schweiz', dial: '+41' },
   { code: 'FR', flag: '🇫🇷', name: 'Frankreich', dial: '+33' },
+  { code: 'IT', flag: '🇮🇹', name: 'Italien', dial: '+39' },
+  { code: 'ES', flag: '🇪🇸', name: 'Spanien', dial: '+34' },
   { code: 'NL', flag: '🇳🇱', name: 'Niederlande', dial: '+31' },
   { code: 'BE', flag: '🇧🇪', name: 'Belgien', dial: '+32' },
+  { code: 'LU', flag: '🇱🇺', name: 'Luxemburg', dial: '+352' },
+  { code: 'DK', flag: '🇩🇰', name: 'Dänemark', dial: '+45' },
+  { code: 'SE', flag: '🇸🇪', name: 'Schweden', dial: '+46' },
+  { code: 'NO', flag: '🇳🇴', name: 'Norwegen', dial: '+47' },
+  { code: 'FI', flag: '🇫🇮', name: 'Finnland', dial: '+358' },
+  { code: 'PL', flag: '🇵🇱', name: 'Polen', dial: '+48' },
+  { code: 'CZ', flag: '🇨🇿', name: 'Tschechien', dial: '+420' },
+  { code: 'PT', flag: '🇵🇹', name: 'Portugal', dial: '+351' },
+  { code: 'GR', flag: '🇬🇷', name: 'Griechenland', dial: '+30' },
+  { code: 'TR', flag: '🇹🇷', name: 'Türkei', dial: '+90' },
   { code: 'GB', flag: '🇬🇧', name: 'Vereinigtes Königreich', dial: '+44' },
-  { code: 'US', flag: '🇺🇸', name: 'USA', dial: '+1' }
+  { code: 'IE', flag: '🇮🇪', name: 'Irland', dial: '+353' },
+  { code: 'US', flag: '🇺🇸', name: 'USA', dial: '+1' },
+  { code: 'CA', flag: '🇨🇦', name: 'Kanada', dial: '+1' },
+  { code: 'AU', flag: '🇦🇺', name: 'Australien', dial: '+61' },
+  { code: 'NZ', flag: '🇳🇿', name: 'Neuseeland', dial: '+64' },
+  { code: 'BR', flag: '🇧🇷', name: 'Brasilien', dial: '+55' },
+  { code: 'MX', flag: '🇲🇽', name: 'Mexiko', dial: '+52' },
+  { code: 'ZA', flag: '🇿🇦', name: 'Südafrika', dial: '+27' },
+  { code: 'AE', flag: '🇦🇪', name: 'Vereinigte Arabische Emirate', dial: '+971' },
+  { code: 'IN', flag: '🇮🇳', name: 'Indien', dial: '+91' },
+  { code: 'CN', flag: '🇨🇳', name: 'China', dial: '+86' },
+  { code: 'JP', flag: '🇯🇵', name: 'Japan', dial: '+81' },
+  { code: 'KR', flag: '🇰🇷', name: 'Südkorea', dial: '+82' }
 ];
 
 applyTweaks(TWEAK_DEFAULTS);
@@ -1920,26 +1943,23 @@ function getContentValue(key) {
 
 function overrideUiFromContent() {
   var cv = getContentValue;
-  ['de', 'en'].forEach(function(lang) {
-    var s = lang === 'en' ? '_en' : '';
-    var ui = UI[lang];
-    var t;
-    if ((t = cv('bookingTitle' + s))) ui.bookingTitle = t;
-    if ((t = cv('bookingSub' + s))) ui.bookingSub = t;
-    if ((t = cv('step1' + s))) ui.steps[0] = t;
-    if ((t = cv('step2' + s))) ui.steps[1] = t;
-    if ((t = cv('step3' + s))) ui.steps[2] = t;
-    if ((t = cv('step4' + s))) ui.steps[3] = t;
-    if ((t = cv('panelTitle1' + s))) ui.panelTitles[0] = t;
-    if ((t = cv('panelTitle2' + s))) ui.panelTitles[1] = t;
-    if ((t = cv('panelTitle3' + s))) ui.panelTitles[2] = t;
-    if ((t = cv('panelTitle4' + s))) ui.panelTitles[3] = t;
-    if ((t = cv('panelSub1' + s))) ui.panelSubs[0] = t;
-    if ((t = cv('panelSub2' + s))) ui.panelSubs[1] = t;
-    if ((t = cv('panelSub3' + s))) ui.panelSubs[2] = t;
-    if ((t = cv('panelSub4' + s))) ui.panelSubs[3] = t;
-    if ((t = cv('submitBtn' + s))) ui.submit = t;
-  });
+  var ui = UI.de;
+  var t;
+  if ((t = cv('bookingTitle'))) ui.bookingTitle = t;
+  if ((t = cv('bookingSub'))) ui.bookingSub = t;
+  if ((t = cv('step1'))) ui.steps[0] = t;
+  if ((t = cv('step2'))) ui.steps[1] = t;
+  if ((t = cv('step3'))) ui.steps[2] = t;
+  if ((t = cv('step4'))) ui.steps[3] = t;
+  if ((t = cv('panelTitle1'))) ui.panelTitles[0] = t;
+  if ((t = cv('panelTitle2'))) ui.panelTitles[1] = t;
+  if ((t = cv('panelTitle3'))) ui.panelTitles[2] = t;
+  if ((t = cv('panelTitle4'))) ui.panelTitles[3] = t;
+  if ((t = cv('panelSub1'))) ui.panelSubs[0] = t;
+  if ((t = cv('panelSub2'))) ui.panelSubs[1] = t;
+  if ((t = cv('panelSub3'))) ui.panelSubs[2] = t;
+  if ((t = cv('panelSub4'))) ui.panelSubs[3] = t;
+  if ((t = cv('submitBtn'))) ui.submit = t;
 }
 
 function updateScarcityMsg() {
@@ -1958,7 +1978,7 @@ function updateScarcityMsg() {
     available++;
   }
   if (available > 0 && available <= threshold) {
-    var tmpl = getContentValue(state.lang === 'en' ? 'scarcityTextEn' : 'scarcityTextDe');
+    var tmpl = getContentValue('scarcityTextDe');
     el.textContent = tmpl.replace('{n}', available);
     el.hidden = false;
   } else {
@@ -1967,14 +1987,13 @@ function updateScarcityMsg() {
 }
 
 function applyPsychologyFeatures() {
-  var lang = state.lang;
   var cv = getContentValue;
 
   // Progress message (panel 4)
   var progressEl = document.getElementById('progressMsg');
   if (progressEl) {
     var progEnabled = cv('progressMsgEnabled') === 'true';
-    progressEl.textContent = cv(lang === 'en' ? 'progressMsgEn' : 'progressMsgDe');
+    progressEl.textContent = cv('progressMsgDe');
     progressEl.hidden = !progEnabled;
   }
 
@@ -1982,8 +2001,8 @@ function applyPsychologyFeatures() {
   var spBlock = document.getElementById('socialProofBlock');
   if (spBlock) {
     var spEnabled = cv('socialProofEnabled') === 'true';
-    var spQuote = cv(lang === 'en' ? 'socialProofQuoteEn' : 'socialProofQuoteDe');
-    var spAuthor = cv(lang === 'en' ? 'socialProofAuthorEn' : 'socialProofAuthorDe');
+    var spQuote = cv('socialProofQuoteDe');
+    var spAuthor = cv('socialProofAuthorDe');
     if (spEnabled && spQuote) {
       document.getElementById('socialProofQuote').textContent = '„' + spQuote + '“';
       document.getElementById('socialProofAuthor').textContent = '– ' + spAuthor;
@@ -1997,15 +2016,13 @@ function applyPsychologyFeatures() {
 function renderSpacesPanel() {
   var grid = document.getElementById('smallGroupGrid');
   if (!grid) return;
-  var lang = state.lang;
-  var consultLabel = getContentValue(lang === 'en' ? 'smallGroupConsultationLabelEn' : 'smallGroupConsultationLabelDe') ||
-    (lang === 'en' ? 'Request consultation' : 'Bitte um Beratung');
+  var consultLabel = getContentValue('smallGroupConsultationLabelDe') || 'Bitte um Beratung';
 
   var cards = (spaces || []).map(function(space) {
-    var name = (lang === 'en' && space.nameEn) ? space.nameEn : (space.nameDe || space.nameEn || space.id);
-    var desc = (lang === 'en' && space.descriptionEn) ? space.descriptionEn : (space.descriptionDe || space.descriptionEn || '');
+    var name = space.nameDe || space.id;
+    var desc = space.descriptionDe || '';
     var cap = (space.capacityMin || space.capacityMax)
-      ? esc(space.capacityMin + '-' + space.capacityMax + ' ' + (lang === 'en' ? 'guests' : 'Gäste'))
+      ? esc(space.capacityMin + '-' + space.capacityMax + ' Gäste')
       : '';
     var isSelected = state.selectedSpaceId === space.id && !state.consultationRequested;
     var img = space.imageUrl
@@ -2054,10 +2071,9 @@ function updateSmallGroupPanel() {
   if (!panel) return;
   var enabled = getContentValue('smallGroupEnabled') === 'true';
   var threshold = parseInt(getContentValue('smallGroupThreshold'), 10) || 50;
-  var lang = state.lang;
-  var headline = getContentValue(lang === 'en' ? 'smallGroupHeadlineEn' : 'smallGroupHeadlineDe');
-  var body = getContentValue(lang === 'en' ? 'smallGroupBodyEn' : 'smallGroupBodyDe');
-  var hint = getContentValue(lang === 'en' ? 'smallGroupContinueHintEn' : 'smallGroupContinueHintDe');
+  var headline = getContentValue('smallGroupHeadlineDe');
+  var body = getContentValue('smallGroupBodyDe');
+  var hint = getContentValue('smallGroupContinueHintDe');
 
   var headEl = document.getElementById('smallGroupHeadline');
   var bodyEl = document.getElementById('smallGroupBody');
@@ -2076,7 +2092,6 @@ function updateSmallGroupPanel() {
 	}
 
 function updateSuccessPanel(waitlist) {
-  var lang = state.lang;
   var cv = getContentValue;
   var titleEl = document.getElementById('successTitle');
   var msgEl = document.getElementById('successMsg');
@@ -2085,17 +2100,17 @@ function updateSuccessPanel(waitlist) {
   if (titleEl) {
     if (waitlist) {
       // UI objects contain raw HTML with <em> tags — use directly
-      titleEl.innerHTML = lang === 'en' ? UI.en.successWaitlistTitle : UI.de.successWaitlistTitle;
+      titleEl.innerHTML = UI.de.successWaitlistTitle;
     } else {
       // Content sheet values are plain text — escape then italicise trailing period
-      var rawTitle = cv(lang === 'en' ? 'successTitle_en' : 'successTitle');
+      var rawTitle = cv('successTitle');
       titleEl.innerHTML = esc(rawTitle).replace(/(\.)(\s*)$/, '<em>$1</em>$2');
     }
   }
   if (msgEl) {
     var rawBody = waitlist
-      ? (lang === 'en' ? UI.en.successWaitlistBody : UI.de.successWaitlistBody)
-      : cv(lang === 'en' ? 'successBody_en' : 'successBody');
+      ? UI.de.successWaitlistBody
+      : cv('successBody');
     msgEl.innerHTML = esc(rawBody).replace(/\n/g, '<br>');
   }
 
@@ -2106,7 +2121,7 @@ function updateSuccessPanel(waitlist) {
     if (pdfEnabled && pdfUrl) {
       var anchor = document.getElementById('newsletterPdfAnchor');
       anchor.href = pdfUrl;
-      anchor.textContent = '↓ ' + cv(lang === 'en' ? 'newsletterPdfTextEn' : 'newsletterPdfTextDe');
+      anchor.textContent = '↓ ' + cv('newsletterPdfTextDe');
       pdfBlock.hidden = false;
     } else {
       pdfBlock.hidden = true;
@@ -2123,10 +2138,10 @@ function updateUpsellPrompt() {
   if (!pkgId || state.guests < threshold) { el.hidden = true; return; }
   var pkg = findPackage(pkgId);
   if (!pkg) { el.hidden = true; return; }
-  var tmpl = getContentValue(state.lang === 'en' ? 'upsellTextEn' : 'upsellTextDe');
+  var tmpl = getContentValue('upsellTextDe');
   var msg = tmpl.replace('{n}', threshold).replace('{package}', pkg.name);
   el.innerHTML = msg + ' <span class="upsell-prompt-cta" onclick="scrollToPackages()">' +
-    (state.lang === 'en' ? 'View packages →' : 'Pakete ansehen →') + '</span>';
+    'Pakete ansehen →</span>';
   el.hidden = false;
 }
 
@@ -2208,12 +2223,8 @@ function applyMaintenanceMode() {
   var layout = document.getElementById('mainLayout');
   var success = document.getElementById('successPanel');
   if (!panel || !stepper || !layout) return;
-  var title = state.lang === 'en'
-    ? (contentData.maintenanceTitleEn || contentData.maintenanceTitleDe || DEFAULT_PUBLIC_CONTENT.maintenanceTitleEn)
-    : (contentData.maintenanceTitleDe || DEFAULT_PUBLIC_CONTENT.maintenanceTitleDe);
-  var msg = state.lang === 'en'
-    ? (contentData.maintenanceMessageEn || contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageEn)
-    : (contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageDe);
+  var title = contentData.maintenanceTitleDe || DEFAULT_PUBLIC_CONTENT.maintenanceTitleDe;
+  var msg = contentData.maintenanceMessageDe || DEFAULT_PUBLIC_CONTENT.maintenanceMessageDe;
   document.getElementById('maintenanceTitle').textContent = title;
   document.getElementById('maintenanceMessage').textContent = msg;
   panel.hidden = !active;
@@ -2375,6 +2386,14 @@ function renderPhoneCountries() {
       '</option>';
   }).join('');
   if (!select.value) select.value = 'DE';
+  updatePhoneCountryDisplay();
+}
+
+function updatePhoneCountryDisplay() {
+  var display = document.getElementById('phoneCountryDisplay');
+  if (!display) return;
+  var country = selectedPhoneCountry();
+  display.textContent = country.code + ' ' + country.dial;
 }
 
 function selectedPhoneCountry() {
@@ -2383,13 +2402,14 @@ function selectedPhoneCountry() {
 }
 
 function normalizeLocalPhone(value) {
-  return String(value || '').replace(/[^\d\s()./-]/g, '').replace(/\s+/g, ' ').trim();
+  return String(value || '').replace(/[^\d+\s()./-]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function fullPhoneValue() {
   var local = normalizeLocalPhone(document.getElementById('phone').value);
   var country = selectedPhoneCountry();
   var national = local.replace(/^0+/, '').trim();
+  if (/^\+\d/.test(local)) return local.replace(/\s+/g, ' ');
   return national ? country.dial + ' ' + national : '';
 }
 
@@ -2513,7 +2533,6 @@ function normalizeServiceCategories(list) {
     return {
       id: String(category.id || ''),
       labelDe: String(category.labelDe || category.label || ''),
-      labelEn: String(category.labelEn || category.labelDe || category.label || ''),
       order: Number(category.order || (index + 1)),
       active: category.active !== false,
       moduleIds: Array.isArray(category.moduleIds) ? category.moduleIds.map(String) : []
@@ -2547,6 +2566,20 @@ function serviceOptionBasePrice(service, selectedState, fallbackPrice) {
     return Number(option.priceOverride);
   }
   return fallbackPrice == null ? defaultServicePrice(service) : fallbackPrice;
+}
+
+function selectedServiceRegularInfo(service, selectedState) {
+  var unit = serviceOptionBasePrice(service, selectedState, defaultServicePrice(service));
+  var total = service.priceType === 'flat' ? unit : unit * state.guests;
+  var perGuest = service.priceType === 'flat'
+    ? (state.guests > 0 ? Math.round(total / state.guests * 100) / 100 : 0)
+    : unit;
+  return {
+    unit: unit,
+    total: total,
+    perGuest: perGuest,
+    label: service.priceType === 'flat' ? fmtEur(unit) + ' Flat' : fmtEur(unit) + currentUi().perGuest
+  };
 }
 
 function serviceTimeSurchargeTotal(service) {
@@ -2644,8 +2677,8 @@ function currentPackageMaps() {
   };
 }
 
-function serviceComparableTotal(service) {
-  var price = defaultServicePrice(service);
+function serviceComparableTotal(service, selectedState) {
+  var price = serviceOptionBasePrice(service, selectedState, defaultServicePrice(service));
   return service.priceType === 'flat' ? price : price * state.guests;
 }
 
@@ -2679,11 +2712,8 @@ function buildSelectionMeta(selectedIds) {
 }
 
 function serviceSavingsPerGuest(service, guests) {
-  var regular = defaultServicePrice(service);
-  if (service.priceType === 'flat') {
-    return guests > 0 ? Math.round(regular / guests * 100) / 100 : 0;
-  }
-  return regular;
+  var info = selectedServiceRegularInfo(service, state.services[service.id] || null);
+  return info.perGuest;
 }
 
 function serviceRegularValuePerGuest(service, guests) {
@@ -2697,7 +2727,7 @@ function packageSavingsPerGuest(pkg) {
   var selected = selectedServicesInOrder();
   var comparableRegularPp = selected.reduce(function(sum, service) {
     if (service.packageCovered || service.upgradeFromId) {
-      return sum + serviceRegularValuePerGuest(findService(service.id), state.guests);
+      return sum + Number(service.regularValuePerGuest || serviceRegularValuePerGuest(findService(service.id), state.guests) || 0);
     }
     return sum;
   }, 0);
@@ -2762,12 +2792,13 @@ function commitServiceSelection(selectedIds, preservePackage, coveredIds, upgrad
     var optionId = existing && findServiceOption(service, existing.optionId) ? existing.optionId : '';
     var option = findServiceOption(service, optionId);
     var price = serviceOptionBasePrice(service, { optionId: optionId }, defaultServicePrice(service));
+    var regularInfo = selectedServiceRegularInfo(service, { optionId: optionId });
     var chargeTotal = null;
-    if (packageCovered) price = 0;
-    else if (existing && existing.price != null && !existing.packageCovered) price = Number(existing.price);
+    if (existing && existing.price != null && !existing.packageCovered) price = Number(existing.price);
     if (option && option.priceOverride !== '' && option.priceOverride != null) price = Number(option.priceOverride);
+    if (packageCovered) price = 0;
     if (upgradeFrom) {
-      chargeTotal = Math.max(0, serviceComparableTotal(service) - serviceComparableTotal(upgradeFrom));
+      chargeTotal = Math.max(0, regularInfo.total - serviceComparableTotal(upgradeFrom));
       price = service.priceType === 'flat' ? chargeTotal : (state.guests > 0 ? Math.round(chargeTotal / state.guests * 100) / 100 : 0);
     }
     next[service.id] = {
@@ -2778,7 +2809,10 @@ function commitServiceSelection(selectedIds, preservePackage, coveredIds, upgrad
       imageUrl: service.imageUrl,
       priceType: service.priceType,
       price: price,
-      regularPrice: defaultServicePrice(service),
+      regularPrice: regularInfo.unit,
+      regularValueTotal: regularInfo.total,
+      regularValuePerGuest: regularInfo.perGuest,
+      regularValueLabel: regularInfo.label,
       timeSurchargeTotal: packageCovered ? 0 : serviceTimeSurchargeTotal(service),
       optionId: optionId,
       optionName: option ? option.name : '',
@@ -2909,7 +2943,7 @@ function renderPackages() {
       return service ? '<span class="pkg-module-tag">' + esc(service.name) + '</span>' : '';
     }).join('');
     var badge = (popularId && pkg.id === popularId)
-      ? '<div class="pkg-popular-badge">' + esc(getContentValue(state.lang === 'en' ? 'popularBadgeTextEn' : 'popularBadgeTextDe') || 'Beliebt') + '</div>'
+      ? '<div class="pkg-popular-badge">' + esc(getContentValue('popularBadgeTextDe') || 'Beliebt') + '</div>'
       : '';
     var media = renderCatalogImage(pkg.imageUrl, 'catalog-img');
     html += '<div class="pkg-card' + (selected ? ' selected' : '') + (media ? ' has-image' : '') + '" data-package-id="' + esc(pkg.id) + '">' +
@@ -3102,7 +3136,16 @@ function selectServiceOption(serviceId, optionId) {
   if (state.services[serviceId]) {
     state.services[serviceId].optionId = selectedOptionId;
     state.services[serviceId].optionName = option.name;
-    if (option.priceOverride !== '' && option.priceOverride != null) state.services[serviceId].price = Number(option.priceOverride) || 0;
+    var regularInfo = selectedServiceRegularInfo(service, state.services[serviceId]);
+    state.services[serviceId].regularPrice = regularInfo.unit;
+    state.services[serviceId].regularValueTotal = regularInfo.total;
+    state.services[serviceId].regularValuePerGuest = regularInfo.perGuest;
+    state.services[serviceId].regularValueLabel = regularInfo.label;
+    if (state.services[serviceId].packageCovered) {
+      state.services[serviceId].price = 0;
+    } else if (option.priceOverride !== '' && option.priceOverride != null) {
+      state.services[serviceId].price = Number(option.priceOverride) || 0;
+    }
   }
   renderPackages();
   renderServiceList();
@@ -3140,9 +3183,9 @@ function budgetTrackStyle(service, value) {
 }
 
 function categoryLabel(category) {
-  if (!category) return state.lang === 'en' ? 'All Modules' : 'Alle Module';
-  if (category.id === '__more') return state.lang === 'en' ? 'More Modules' : 'Weitere Module';
-  return state.lang === 'en' ? (category.labelEn || category.labelDe || category.id) : (category.labelDe || category.labelEn || category.id);
+  if (!category) return 'Alle Module';
+  if (category.id === '__more') return 'Weitere Module';
+  return category.labelDe || category.id;
 }
 
 function buildModuleCategoryTabs(avail) {
@@ -3161,10 +3204,10 @@ function buildModuleCategoryTabs(avail) {
   }).filter(function(category) { return category.moduleIds.length > 0; });
   var unassigned = avail.map(function(service) { return service.id; }).filter(function(id) { return !assignedIds[id]; });
   if (unassigned.length && tabs.length) {
-    tabs.push({ id: '__more', labelDe: 'Weitere Module', labelEn: 'More Modules', order: 9999, active: true, moduleIds: unassigned });
+    tabs.push({ id: '__more', labelDe: 'Weitere Module', order: 9999, active: true, moduleIds: unassigned });
   }
   if (!tabs.length) {
-    tabs = [{ id: '__all', labelDe: 'Alle Module', labelEn: 'All Modules', order: 1, active: true, moduleIds: avail.map(function(service) { return service.id; }) }];
+    tabs = [{ id: '__all', labelDe: 'Alle Module', order: 1, active: true, moduleIds: avail.map(function(service) { return service.id; }) }];
   }
   if (!activeServiceCategory || !tabs.some(function(tab) { return tab.id === activeServiceCategory; })) {
     activeServiceCategory = tabs[0] ? tabs[0].id : '';
@@ -3218,8 +3261,10 @@ function renderServiceList() {
     var selectedOption = selected ? selectedServiceOption(service, selectedState) : null;
     var currentPrice = selected ? Number(selectedState.price) : defaultServicePrice(service);
     var timeSurcharge = selected && !packageCovered ? serviceTimeSurchargeTotal(service) : 0;
+    var regularInfo = selected ? selectedServiceRegularInfo(service, selectedState) : selectedServiceRegularInfo(service, null);
+    var regularLabel = selectedState && selectedState.regularValueLabel ? selectedState.regularValueLabel : regularInfo.label;
     var priceLabel = packageCovered
-      ? '<div class="price-val price-old">' + esc(fmtEur(serviceSavingsPerGuest(service, state.guests))) + '</div><div class="price-sub">' + esc(ui.packageCoveredBadge) + '</div>'
+      ? '<div class="price-val price-old">' + esc(regularLabel) + '</div><div class="price-sub">' + esc(ui.packageCoveredBadge) + '</div>'
       : upgradeFrom
       ? '<div class="price-val">' + esc(fmtEur(currentPrice)) + '</div><div class="price-sub">' + esc(ui.upgradeBadge) + '</div>'
       : service.priceType === 'flat'
@@ -3568,7 +3613,8 @@ function updateSummary() {
     rows += selected.map(function(service) {
       if (service.packageCovered) {
         var coveredName = service.name + (service.optionName ? ' - ' + service.optionName : '');
-        return '<div class="summary-service"><span class="sname">' + esc(coveredName) + '<small>' + esc(ui.packageCoveredBadge + ' · regulär ' + fmtEur(serviceSavingsPerGuest(service, state.guests)) + ui.perGuest) + '</small></span><span class="sval">' + esc(ui.packageCoveredBadge) + '</span></div>';
+        var regularLabel = service.regularValueLabel || selectedServiceRegularInfo(findService(service.id), service).label;
+        return '<div class="summary-service"><span class="sname">' + esc(coveredName) + '<small>' + esc(ui.packageCoveredBadge + ' · regulär ' + regularLabel) + '</small></span><span class="sval">' + esc(ui.packageCoveredBadge) + '</span></div>';
       }
       if (service.upgradeFromId) {
         var upgradePp = state.guests > 0 ? Math.round((service.chargeTotal || 0) / state.guests * 100) / 100 : 0;
@@ -3759,6 +3805,7 @@ function buildSubmitPayload() {
     lname: document.getElementById('lname').value.trim(),
     email: document.getElementById('email').value.trim(),
     phone: fullPhoneValue(),
+    phoneCountry: selectedPhoneCountry().code,
     message: document.getElementById('message').value.trim(),
     source: document.getElementById('source').value,
     newsletter: state.newsletter,
@@ -3841,9 +3888,9 @@ function seedDevData() {
     { id: 'pkg_vesper', icon: 'vesper-board', name: 'Tagespaket Vesper', desc: 'Unser Tagespaket für entspannte Mittagsveranstaltungen: ein herzhaftes Vesper mit regionalem Charakter, dazu pro Gast ein 0,5 l Woinemer Bier und Tischwasser inklusive. Buchbar ab 50 Gästen, sonntags oder werktags zwischen 12:00 und 14:00 Uhr.', modules: ['vesper', 'woinemer_bier_05', 'tischwasser'], occasions: [], packagePricePerGuest: 35, minGuests: 50, allowedWeekdays: ['0', '1', '2', '3', '4', '5'], startTimeMin: '12:00', startTimeMax: '14:00', active: true }
   ]);
   serviceCategories = normalizeServiceCategories([
-    { id: 'getraenke', labelDe: 'Getränke', labelEn: 'Drinks', order: 1, moduleIds: ['bar', 'tischwasser', 'woinemer_bier_05'] },
-    { id: 'essen', labelDe: 'Essen', labelEn: 'Food', order: 2, moduleIds: ['catering', 'livecooking', 'vesper'] },
-    { id: 'technik_deko', labelDe: 'Technik & Deko', labelEn: 'Tech & Decor', order: 3, moduleIds: ['deco', 'music'] }
+    { id: 'getraenke', labelDe: 'Getränke', order: 1, moduleIds: ['bar', 'tischwasser', 'woinemer_bier_05'] },
+    { id: 'essen', labelDe: 'Essen', order: 2, moduleIds: ['catering', 'livecooking', 'vesper'] },
+    { id: 'technik_deko', labelDe: 'Technik & Deko', order: 3, moduleIds: ['deco', 'music'] }
   ]);
   contentData = Object.assign({}, DEFAULT_PUBLIC_CONTENT);
 }
@@ -3881,6 +3928,7 @@ async function loadRemoteData(options) {
       if (Array.isArray(contentResult.occasions) && contentResult.occasions.length) {
         loadedOccasions = contentResult.occasions;
       }
+      if (contentResult.runtime) applyBootRuntime(contentResult.runtime);
     }
   } catch (err) {
     if (!options.silent) seedDevData();
@@ -3922,10 +3970,7 @@ async function bootPublicPage() {
   renderCalendar();
   renderNewsletterState();
   try {
-    var boot = await runServer('getPublicBootState');
-    if (boot && boot.content) contentData = Object.assign({}, contentData, boot.content);
-    if (boot && boot.runtime) applyBootRuntime(boot.runtime);
-    if (boot && boot.version) dataVersion = boot.version;
+    await loadRemoteData({ showLoading: false });
     buildStartTimeOptions();
     updateDurationOptions();
     updateAvailabilityNote();
@@ -3936,7 +3981,6 @@ async function bootPublicPage() {
       return;
     }
     document.body.classList.add('public-ready');
-    await loadRemoteData({ showLoading: false });
     setContentLoading(false);
   } catch (err) {
     document.body.classList.add('public-ready');
@@ -3993,6 +4037,7 @@ function bindStaticEvents() {
   });
   document.getElementById('duration').addEventListener('change', onTimeChange);
   document.getElementById('phoneCountry').addEventListener('change', function() {
+    updatePhoneCountryDisplay();
     document.getElementById('phoneControl').classList.remove('invalid');
     document.getElementById('err-phone').style.display = 'none';
   });
@@ -4016,14 +4061,23 @@ function isInIframe() {
   try { return window.self !== window.top; } catch (e) { return true; }
 }
 
+function parentMessageTargetOrigin() {
+  try {
+    if (!document.referrer) return '*';
+    return new URL(document.referrer).origin || '*';
+  } catch (e) {
+    return '*';
+  }
+}
+
 function notifyHeight() {
   try {
-    parent.postMessage({ type: 'platoHeight', height: document.documentElement.scrollHeight }, '*');
+    parent.postMessage({ type: 'platoHeight', height: document.documentElement.scrollHeight }, parentMessageTargetOrigin());
   } catch (e) {}
 }
 
 function notifyParentScrollTop() {
-  try { parent.postMessage({ type: 'platoScrollTop' }, '*'); } catch (e) {}
+  try { parent.postMessage({ type: 'platoScrollTop' }, parentMessageTargetOrigin()); } catch (e) {}
 }
 
 window.addEventListener('load', notifyHeight);
