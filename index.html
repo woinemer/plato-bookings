@@ -4017,6 +4017,15 @@ function showSuccessPanel(bookingId) {
   lastDraftSnapshot = '';
   if (isInIframe()) { notifyParentScrollTop(); } else { window.scrollTo({ top: document.getElementById('booking').offsetTop, behavior: 'smooth' }); }
   notifyHeight();
+  // Google Ads Conversion Signal
+  if (isInIframe()) {
+    try {
+      parent.postMessage(
+        { type: 'platoBookingComplete', bookingId: bookingId || '' },
+        parentMessageTargetOrigin()
+      );
+    } catch (e) {}
+  }
 }
 
 function setLoading(on) {
