@@ -1189,7 +1189,6 @@ html.iframe-mode .hero { min-height: 0; }
           <div class="panel-sub">Geh Schritt für Schritt durch die Kategorien und wähle, was dazu passen soll – alles ist frei kombinierbar und nichts ist Pflicht. Wenn du es eilig hast, kannst du oben auch ein fertiges Paket als Startpunkt wählen.</div>
         </div>
         <div class="month-notice" id="monthNotice" style="display:none"></div>
-        <div class="promo-banner" id="promoBanner" style="display:none"></div>
         <div class="field-block" id="packagesBlock" style="display:none">
           <div class="section-label">Fertige Pakete – optional</div>
           <div class="pkg-form-block">
@@ -1469,6 +1468,7 @@ var UI = {
     optionTitle: 'Variante wählen',
     optionRequired: 'Bitte wähle eine Variante.',
     nightSurcharge: 'Nachtzuschlag',
+    nightSurchargeNote: 'Nachtzuschlag: {detail} = {total}',
     nextDay: '(+1)',
     errors: {
       date: 'Bitte wähle ein Datum.',
@@ -2109,6 +2109,97 @@ function enforceUnverbindlichTermin(value) {
     .replace(/Termin\s+anfragen\b/gi, 'Termin unverbindlich anfragen');
 }
 
+// Generisch admin-editierbare Formular-Texte: { k: uitext-Suffix, p: Pfad in UI.de }
+var UI_TEXT_DEFS = [
+  // Schritt 1 – Datum/Zeit
+  { k: 'dateLabel', p: 'dateLabel' },
+  { k: 'timeSectionLabel', p: 'timeSectionLabel' },
+  { k: 'startLabel', p: 'startLabel' },
+  { k: 'durationLabel', p: 'durationLabel' },
+  { k: 'startPlaceholder', p: 'startPlaceholder' },
+  { k: 'durationPlaceholder', p: 'durationPlaceholder' },
+  { k: 'available', p: 'available' },
+  { k: 'booked', p: 'booked' },
+  { k: 'availabilityWindow', p: 'availabilityWindow' },
+  { k: 'availabilityWeekdays', p: 'availabilityWeekdays' },
+  { k: 'nightSurcharge', p: 'nightSurcharge' },
+  { k: 'nightSurchargeNote', p: 'nightSurchargeNote' },
+  // Schritt 2 – Details
+  { k: 'guestsLabel', p: 'guestsLabel' },
+  { k: 'guestsWord', p: 'guestsWord' },
+  { k: 'occasionLabel', p: 'occasionLabel' },
+  { k: 'occasionNotePlaceholder', p: 'occasionNotePlaceholder' },
+  // Schritt 3 – Leistungen
+  { k: 'packagesLabel', p: 'packagesLabel' },
+  { k: 'packagesForOccasion', p: 'packagesForOccasion' },
+  { k: 'packagesTitle', p: 'packagesTitle' },
+  { k: 'modulesLabel', p: 'modulesLabel' },
+  { k: 'serviceRulesDefault', p: 'serviceRulesDefault' },
+  { k: 'optionTitle', p: 'optionTitle' },
+  { k: 'optionRequired', p: 'optionRequired' },
+  { k: 'packageCoveredBadge', p: 'packageCoveredBadge' },
+  { k: 'upgradeBadge', p: 'upgradeBadge' },
+  { k: 'packagePriceLine', p: 'packagePriceLine' },
+  { k: 'packageSavings', p: 'packageSavings' },
+  { k: 'packageEstimate', p: 'packageEstimate' },
+  { k: 'noServices', p: 'noServices' },
+  { k: 'noPackages', p: 'noPackages' },
+  // Schritt 4 – Kontakt
+  { k: 'contactFname', p: 'contactLabels.0' },
+  { k: 'contactLname', p: 'contactLabels.1' },
+  { k: 'contactEmail', p: 'contactLabels.2' },
+  { k: 'contactPhone', p: 'contactLabels.3' },
+  { k: 'contactSource', p: 'contactLabels.4' },
+  { k: 'contactMessage', p: 'contactLabels.5' },
+  { k: 'phFname', p: 'placeholders.fname' },
+  { k: 'phLname', p: 'placeholders.lname' },
+  { k: 'phEmail', p: 'placeholders.email' },
+  { k: 'phPhone', p: 'placeholders.phone' },
+  { k: 'phMessage', p: 'placeholders.message' },
+  { k: 'sourcePlaceholder', p: 'sourcePlaceholder' },
+  // Zusammenfassung / Warteliste
+  { k: 'summaryTitle', p: 'summaryTitle' },
+  { k: 'summaryServices', p: 'summaryServices' },
+  { k: 'dateRow', p: 'dateRow' },
+  { k: 'timeRow', p: 'timeRow' },
+  { k: 'total', p: 'total' },
+  { k: 'estimated', p: 'estimated' },
+  { k: 'perGuest', p: 'perGuest' },
+  { k: 'waitlistTitle', p: 'waitlistTitle' },
+  { k: 'waitlistText', p: 'waitlistText' },
+  { k: 'waitlistClear', p: 'waitlistClear' },
+  { k: 'waitlistSummary', p: 'waitlistSummary' },
+  // Erfolg / Laden
+  { k: 'successTitle', p: 'successTitle' },
+  { k: 'successBody', p: 'successBody' },
+  { k: 'successWaitlistTitle', p: 'successWaitlistTitle' },
+  { k: 'successWaitlistBody', p: 'successWaitlistBody' },
+  { k: 'loading', p: 'loading' },
+  // Fehlermeldungen
+  { k: 'errDate', p: 'errors.date' },
+  { k: 'errTime', p: 'errors.time' },
+  { k: 'errDuration', p: 'errors.duration' },
+  { k: 'errGuests', p: 'errors.guests' },
+  { k: 'errOccasion', p: 'errors.occasion' },
+  { k: 'errServiceOptions', p: 'errors.serviceOptions' },
+  { k: 'errFname', p: 'errors.fname' },
+  { k: 'errLname', p: 'errors.lname' },
+  { k: 'errEmail', p: 'errors.email' },
+  { k: 'errPhone', p: 'errors.phone' }
+];
+
+function setUiPath(obj, path, value) {
+  var parts = String(path).split('.');
+  var cur = obj;
+  for (var i = 0; i < parts.length - 1; i++) {
+    if (cur[parts[i]] == null) return;
+    cur = cur[parts[i]];
+  }
+  var last = parts[parts.length - 1];
+  if (Array.isArray(cur) && /^\d+$/.test(last)) cur[Number(last)] = value;
+  else cur[last] = value;
+}
+
 function overrideUiFromContent() {
   var cv = getContentValue;
   var ui = UI.de;
@@ -2128,6 +2219,11 @@ function overrideUiFromContent() {
   if ((t = cv('panelSub3'))) ui.panelSubs[2] = t;
   if ((t = cv('panelSub4'))) ui.panelSubs[3] = t;
   if ((t = cv('submitBtn'))) ui.submit = t;
+  // Generische Formular-Text-Overrides (nur bei nicht-leerem Wert)
+  UI_TEXT_DEFS.forEach(function(def) {
+    var v = cv('uitext_' + def.k);
+    if (v) setUiPath(ui, def.p, v);
+  });
 }
 
 function updateScarcityMsg() {
@@ -2834,18 +2930,9 @@ function promoDefaultText(promo) {
   return promo.name || 'Aktion';
 }
 // Proaktiver Banner: bewirbt alle aktiven, gültigen Aktionen; ausgelöste mit „aktiviert".
-function renderPromoBanner() {
-  var box = document.getElementById('promoBanner');
-  if (!box) return;
-  var promos = activePromotions();
-  if (!promos.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
-  box.innerHTML = promos.map(function(p) {
-    var done = promoSatisfied(p);
-    var text = p.textDe || promoDefaultText(p);
-    return '<div class="promo-line' + (done ? ' done' : '') + '">' + (done ? '✓ ' : '🎁 ') + esc(text) + (done ? ' <em>– aktiviert</em>' : '') + '</div>';
-  }).join('');
-  box.style.display = '';
-}
+// Aktions-Hinweise werden jetzt direkt an den Modulkarten gezeigt (renderModulePromoNote).
+// Der frühere obere Banner entfällt; Funktion bleibt als No-op für Bestands-Aufrufe.
+function renderPromoBanner() {}
 // Belohnungs-Module bei Auslösung automatisch auswählen (edge-getriggert -> manuelles Abwählen bleibt bestehen).
 function syncPromotionSelections() {
   var promos = activePromotions();
@@ -3648,6 +3735,31 @@ function getUpsellSourceForTarget(target) {
   }) || null;
 }
 
+// Aktions-Hinweis an der Modulkarte (Upsell-Stil): Auslöser-Modul (Teaser/aktiviert) bzw. Belohnungs-Modul.
+function renderModulePromoNote(service) {
+  var promos = activePromotions();
+  var triggerPromo = promos.find(function(p) { return (p.triggerModuleIds || []).indexOf(service.id) !== -1; });
+  if (triggerPromo) {
+    var satisfied = promoSatisfied(triggerPromo);
+    var rewardNames = (triggerPromo.rewardModuleIds || []).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean).join(', ');
+    var text = satisfied
+      ? 'Aktion aktiviert: ' + (rewardNames ? rewardNames + ' gratis dazu!' : 'Geschenk gratis dazu!')
+      : (triggerPromo.textDe || promoDefaultText(triggerPromo));
+    return '<div class="module-upsell-card">' +
+      '<div class="module-upsell-kicker">' + (satisfied ? '✓ Aktion' : '🎁 Aktion') + '</div>' +
+      '<div class="module-upsell-text">' + esc(text) + '</div>' +
+      '</div>';
+  }
+  var rewardName = activePromoRewards()[service.id];
+  if (rewardName) {
+    return '<div class="module-upsell-card">' +
+      '<div class="module-upsell-kicker">🎁 Geschenk</div>' +
+      '<div class="module-upsell-text">' + esc('Gratis durch Aktion „' + rewardName + '".') + '</div>' +
+      '</div>';
+  }
+  return '';
+}
+
 function renderModuleUpsell(service) {
   var source = getUpsellSourceForTarget(service);
   if (!source) return '';
@@ -3850,6 +3962,7 @@ function renderServiceList() {
         '</div>';
 	    }
 	    var moduleUpsell = renderModuleUpsell(service);
+	    var modulePromo = renderModulePromoNote(service);
 	    var media = renderCatalogImage(service.imageUrl, 'service-card-media');
 	    var optionPanel = '';
 		    if (selected && (service.options || []).length) {
@@ -3891,6 +4004,7 @@ function renderServiceList() {
 	      '<div class="service-price">' + priceLabel + moduleUpsell + '</div>' +
 	      '<div class="service-checkbox">' + (selected ? '✓' : '') + '</div>' +
 	      '</div>' +
+	      modulePromo +
 	      optionPanel +
 	      slider +
 	      '</div>';
@@ -4078,7 +4192,7 @@ function onTimeChange() {
   document.getElementById('tsHours').textContent = nightHours > 0 ? String(nightHours) : '-';
   if (state.nightSurcharge > 0) {
     nightBox.style.display = 'block';
-    document.getElementById('nightSurchargeText').innerHTML = '🌙 <strong>' + esc(ui.nightSurcharge) + ':</strong> ' + esc(nightSurchargeLabel(nightHours)) + ' = <strong>' + esc(fmtEur(state.nightSurcharge)) + '</strong>';
+    document.getElementById('nightSurchargeText').innerHTML = '🌙 ' + esc(replaceTokens(ui.nightSurchargeNote, { detail: nightSurchargeLabel(nightHours), total: fmtEur(state.nightSurcharge) }));
   } else {
     nightBox.style.display = 'none';
   }
