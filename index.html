@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -664,6 +662,11 @@ section{padding:120px 56px;}
 .module-tab{flex:0 0 auto;padding:10px 18px;border-radius:var(--radius);border:1px solid var(--border);background:white;color:var(--stone);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
 .module-tab:hover{border-color:var(--gold-line);color:var(--dark);}
 .module-tab.active{background:var(--dark);border-color:var(--dark);color:var(--beige);}
+.module-tab.done{border-color:var(--gold-line);color:var(--gold);background:rgba(186,159,93,.08);}
+.module-tab.done::before{content:"✓ ";}
+.category-progress{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--stone);margin:0 0 12px;}
+.month-notice{margin:0 0 18px;padding:12px 16px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);border-left:4px solid var(--gold);color:var(--stone);font-size:13px;font-weight:600;line-height:1.45;}
+.promo-banner{margin:0 0 14px;padding:12px 16px;border-radius:var(--radius);background:#eaf7ef;border:1px solid rgba(63,143,104,.35);border-left:4px solid #3f8f68;color:#235c41;font-size:13px;font-weight:700;line-height:1.45;}
 .service-list{display:flex;flex-direction:column;gap:10px;}
 .service-card{
   border:1px solid var(--border);border-radius:var(--radius);background:white;
@@ -798,6 +801,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .summary-service .sname small{display:block;font-size:10px;opacity:.6;margin-top:2px;letter-spacing:.04em;}
 .summary-service .sval{color:var(--gold);font-family:var(--serif);font-size:13px;white-space:nowrap;}
 .summary-savings{margin-top:12px;padding:10px 12px;border:1px solid rgba(186,159,93,.26);background:rgba(186,159,93,.1);border-radius:6px;color:var(--gold);font-family:var(--serif);font-size:13px;text-align:center;}
+.summary-savings-sub{margin-top:4px;font-family:var(--sans,inherit);font-size:10px;line-height:1.4;color:rgba(217,208,188,.6);}
 .summary-discount{display:flex;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(186,159,93,.16);font-size:12px;color:rgba(217,208,188,.72);}
 .summary-discount .sval{color:#7fd39f;font-family:var(--serif);white-space:nowrap;}
 .summary-estimate-note{margin-top:8px;font-size:10px;line-height:1.45;color:rgba(217,208,188,.45);}
@@ -823,7 +827,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 }
 .summary-total{display:flex;justify-content:space-between;align-items:baseline;}
 .summary-total .label{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(217,208,188,.55);}
-.summary-total .amount{font-family:var(--serif);font-size:34px;color:var(--gold);letter-spacing:-.015em;}
+.summary-total .amount{font-family:var(--serif);font-size:21px;font-weight:500;color:rgba(217,208,188,.82);letter-spacing:-.01em;}
 .summary-pp{font-size:11px;color:rgba(217,208,188,.4);text-align:right;margin-top:4px;font-weight:500;}
 .form-notice{display:none;margin:0 0 22px;padding:14px 16px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);border-left:4px solid var(--gold);color:var(--stone);font-size:13px;font-weight:700;line-height:1.45;}
 .form-notice.active{display:block;}
@@ -1177,33 +1181,36 @@ html.iframe-mode .hero { min-height: 0; }
       <!-- PANEL 3: SERVICES -->
       <div class="panel" id="panel3">
         <div>
-          <div class="panel-title">Was darf's <em>sein?</em></div>
-          <div class="panel-sub">Wähle ein Paket als Startpunkt oder stelle alles individuell zusammen.</div>
+          <div class="panel-title">Stell dir deinen Abend <em>zusammen.</em></div>
+          <div class="panel-sub">Geh Schritt für Schritt durch die Kategorien und wähle, was dazu passen soll – alles ist frei kombinierbar und nichts ist Pflicht. Wenn du es eilig hast, kannst du oben auch ein fertiges Paket als Startpunkt wählen.</div>
         </div>
+        <div class="month-notice" id="monthNotice" style="display:none"></div>
+        <div class="promo-banner" id="promoBanner" style="display:none"></div>
         <div class="field-block" id="packagesBlock" style="display:none">
-          <div class="section-label">Empfohlene Pakete</div>
+          <div class="section-label">Fertige Pakete – optional</div>
           <div class="pkg-form-block">
             <div class="pkg-form-header" onclick="togglePkgOpen()">
               <div>
                 <div class="pkg-form-label" id="pkgOccasionLabel">Für deinen Anlass</div>
-                <div class="pkg-form-title">Unsere Empfehlungen</div>
+                <div class="pkg-form-title">Schon entschieden? Fertiges Paket wählen (optional)</div>
               </div>
-              <div class="pkg-toggle open" id="pkgToggleIcon">▾</div>
+              <div class="pkg-toggle" id="pkgToggleIcon">▾</div>
             </div>
             <div id="packagesGrid"></div>
           </div>
-          <div style="font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-top:8px;padding-left:4px">Du kannst die Auswahl unten jederzeit anpassen.</div>
+          <div style="font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);margin-top:8px;padding-left:4px">Ein Paket ist nur ein Startpunkt – du kannst unten alles frei anpassen.</div>
         </div>
         <div class="field-block">
           <div class="module-headline">Gestalte deinen Abend <em>individuell.</em></div>
-          <div class="section-label">Module</div>
+          <div class="panel-sub" style="margin-top:-4px;margin-bottom:14px">Wähle Kategorie für Kategorie aus, was du möchtest. Mit „Weiter" gehst du zur nächsten Kategorie.</div>
           <div class="module-tabs" id="moduleTabs"></div>
+          <div class="category-progress" id="categoryProgress"></div>
           <div class="service-list" id="serviceList"></div>
           <div class="service-rules-note" id="serviceRulesNote"></div>
         </div>
         <div class="btn-row">
-          <button class="btn-secondary" onclick="goStep(2)">← Zurück</button>
-          <button class="btn-primary" onclick="goStep(4)">Weiter <span class="arrow">→</span></button>
+          <button class="btn-secondary" id="step3BackBtn" onclick="stepCategoryBack()">← Zurück</button>
+          <button class="btn-primary" id="step3NextBtn" onclick="stepCategoryForward()">Weiter <span class="arrow">→</span></button>
         </div>
       </div>
 
@@ -1264,7 +1271,7 @@ html.iframe-mode .hero { min-height: 0; }
           <label class="field-label">Nachricht (optional)</label>
           <textarea class="field-input" id="message" rows="3" placeholder="Gibt es noch etwas, das wir wissen sollten?"></textarea>
         </div>
-        <div class="field-group">
+        <div class="field-group" id="discountFieldGroup">
           <label class="field-label">Rabattcode</label>
           <div class="discount-box">
             <div class="discount-row">
@@ -1348,6 +1355,7 @@ var DEFAULT_PUBLIC_CONTENT = {
   trustFaqItemsDe: 'Noch keine verbindliche Buchung|Mit dem Absenden stellst du nur eine Anfrage - wir melden uns persönlich.\nAntwort innerhalb von 24 Stunden|Du bekommst ein individuelles Angebot von unserem Team.\nRabattcode möglich|Falls ein gültiger Rabattcode eingetragen ist, berücksichtigen wir ihn im Angebot.',
   publicPollingEnabled: 'true',
   publicPollingSeconds: '300',
+  discountFeatureEnabled: 'true',
   bookingTitle: 'Termin unverbindlich anfragen.',
   bookingSub: 'In wenigen Schritten zu deiner persönlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
   smallGroupEnabled: 'true',
@@ -1447,6 +1455,7 @@ var UI = {
     noPackages: 'Keine Pakete hinterlegt.',
     packageEstimate: 'Ab {total}/Gast',
     packageCoveredBadge: 'Im Paketpreis',
+    inclusive: 'inklusive',
     upgradeBadge: 'Upgrade',
     packagePriceLine: 'Paketpreis',
     packageSavings: 'Du sparst {amount}/Gast',
@@ -1563,6 +1572,7 @@ var UI = {
     noPackages: 'No packages available yet.',
     packageEstimate: 'From {total}/guest',
     packageCoveredBadge: 'In package price',
+    inclusive: 'included',
     upgradeBadge: 'Upgrade',
     packagePriceLine: 'Package price',
     packageSavings: 'You save {amount}/guest',
@@ -1685,9 +1695,10 @@ var runtimeSettings = {
 var calToday = new Date();
 var calYear = calToday.getFullYear();
 var calMonth = calToday.getMonth();
-var pkgOpen = true;
+var pkgOpen = false;
 var lastRuleMessages = [];
 var activeServiceCategory = '';
+var currentModuleTabs = [];
 
 var PHONE_COUNTRIES = [
   { code: 'DE', flag: '🇩🇪', name: 'Deutschland', dial: '+49' },
@@ -1963,6 +1974,16 @@ function fmtEur(value) {
   return Number(value || 0).toLocaleString(locale(), { style: 'currency', currency: 'EUR' });
 }
 
+// Für 0-€-Positionen keinen Preis, sondern "inklusive" anzeigen (sonst regulärer Preis).
+function fmtEurOrInclusive(value) {
+  return Number(value || 0) > 0 ? fmtEur(value) : currentUi().inclusive;
+}
+
+// Rabattcode-Funktion global an/aus (nur explizit 'false' deaktiviert -> backward-compatible).
+function discountFeatureEnabled() {
+  return getContentValue('discountFeatureEnabled') !== 'false';
+}
+
 function moneyPerGuest(value) {
   return fmtEur(value) + currentUi().perGuest;
 }
@@ -2147,6 +2168,17 @@ function applyPsychologyFeatures() {
     var recoveryEnabled = cv('recoveryEnabled') === 'true';
     recoveryNotice.textContent = cv('recoveryInlineNoticeDe');
     recoveryNotice.hidden = !recoveryEnabled || !recoveryNotice.textContent;
+  }
+
+  var discountGroup = document.getElementById('discountFieldGroup');
+  if (discountGroup) {
+    if (!discountFeatureEnabled()) {
+      discountGroup.style.display = 'none';
+      state.discount = null;
+      state.discountCode = '';
+    } else {
+      discountGroup.style.display = '';
+    }
   }
 
   renderTrustFaq();
@@ -2660,6 +2692,117 @@ function findPackage(id) {
   return getActivePackages().find(function(pkg) { return pkg.id === id; }) || null;
 }
 
+/* === Monatsabhängige Angebots-Steuerung (Saison) === */
+var MONTH_NAMES_DE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+function parseMonthRules() {
+  try {
+    var raw = getContentValue('monthRulesJson');
+    var arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function currentBookingMonth() {
+  if (!state.selectedDate) return 0;
+  var d = parseDateKey(state.selectedDate);
+  return d ? (d.getMonth() + 1) : 0;
+}
+function monthRuleForCurrent() {
+  var m = currentBookingMonth();
+  if (!m) return null;
+  return parseMonthRules().find(function(r) { return Number(r.month) === m; }) || null;
+}
+function monthAllowsPackage(pkg) {
+  var rule = monthRuleForCurrent();
+  if (!rule) return true;
+  if (String(rule.requiredPackageId || '') === pkg.id) return true;
+  var allow = rule.allowedPackageIds || [];
+  return !allow.length || allow.indexOf(pkg.id) !== -1;
+}
+function monthAllowsModule(service) {
+  var rule = monthRuleForCurrent();
+  if (!rule) return true;
+  if ((rule.requiredModuleIds || []).indexOf(service.id) !== -1) return true;
+  var allow = rule.allowedModuleIds || [];
+  return !allow.length || allow.indexOf(service.id) !== -1;
+}
+function applyMonthRequiredSelections() {
+  var rule = monthRuleForCurrent();
+  if (!rule) return;
+  if (rule.requiredPackageId && !state.selectedPackage && findPackage(rule.requiredPackageId)) {
+    selectPackage(rule.requiredPackageId);
+  }
+  var reqMods = (rule.requiredModuleIds || []).filter(function(id) { return findService(id); });
+  var missing = reqMods.filter(function(id) { return !state.services[id]; });
+  if (missing.length) {
+    var selectedIds = {};
+    Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
+    missing.forEach(function(id) { selectedIds[id] = true; });
+    var packageMaps = currentPackageMaps();
+    if (packageMaps.pkg) packageChargeableIds(packageMaps.pkg).forEach(function(mid) { if (findService(mid)) selectedIds[mid] = true; });
+    normalizeSelectedIds(selectedIds, [], reqMods[0]);
+    var meta = buildSelectionMeta(selectedIds);
+    commitServiceSelection(selectedIds, !!packageMaps.pkg, meta.covered, meta.upgrades);
+    renderPackages();
+    renderServiceList();
+    updateSummary();
+  }
+}
+/* === Aktionen (Promotions) === */
+function parsePromotions() {
+  try { var a = JSON.parse(getContentValue('promotionsJson') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+function activePromotions() {
+  return parsePromotions().filter(function(p) { return p && p.active !== false; });
+}
+function promoSatisfied(promo) {
+  var trigMods = promo.triggerModuleIds || [];
+  var trigPkgs = promo.triggerPackageIds || [];
+  if (!trigMods.length && !trigPkgs.length) return false;
+  if (trigMods.some(function(id) { return !!state.services[id]; })) return true;
+  return trigPkgs.indexOf(state.selectedPackage) !== -1;
+}
+// Map rewardModuleId -> Aktionsname für aktuell ausgelöste Aktionen
+function activePromoRewards() {
+  var rewards = {};
+  activePromotions().forEach(function(promo) {
+    if (!promoSatisfied(promo)) return;
+    (promo.rewardModuleIds || []).forEach(function(id) {
+      if (findService(id)) rewards[id] = promo.name || 'Aktion';
+    });
+  });
+  return rewards;
+}
+function isPromoReward(serviceId) {
+  return Object.prototype.hasOwnProperty.call(activePromoRewards(), serviceId);
+}
+function renderPromoBanner() {
+  var box = document.getElementById('promoBanner');
+  if (!box) return;
+  var hits = activePromotions().filter(promoSatisfied);
+  var texts = hits.map(function(p) { return p.textDe || ((p.name || 'Aktion') + ': Gratis-Leistung inklusive!'); });
+  if (!texts.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.innerHTML = texts.map(function(t) { return '🎁 ' + esc(t); }).join('<br>');
+  box.style.display = '';
+}
+
+function renderMonthNotice() {
+  var box = document.getElementById('monthNotice');
+  if (!box) return;
+  var rule = monthRuleForCurrent();
+  if (!rule) { box.style.display = 'none'; box.textContent = ''; return; }
+  var parts = [];
+  var reqNames = [];
+  if (rule.requiredPackageId) { var rp = findPackage(rule.requiredPackageId); if (rp) reqNames.push(rp.name); }
+  (rule.requiredModuleIds || []).forEach(function(id) { var s = findService(id); if (s) reqNames.push(s.name); });
+  if (reqNames.length) parts.push('Im ' + MONTH_NAMES_DE[currentBookingMonth() - 1] + ' immer enthalten: ' + reqNames.join(', ') + '.');
+  if ((rule.allowedPackageIds || []).length || (rule.allowedModuleIds || []).length) {
+    parts.push('In diesem Monat ist die Auswahl saisonal eingeschränkt.');
+  }
+  if (!parts.length) { box.style.display = 'none'; box.textContent = ''; return; }
+  box.textContent = parts.join(' ');
+  box.style.display = '';
+}
+
 function normalizeServices(list) {
   return (Array.isArray(list) ? list : []).map(function(service) {
     return {
@@ -2953,13 +3096,30 @@ function serviceRegularValuePerGuest(service, guests) {
 function packageSavingsPerGuest(pkg) {
   if (!packageUsesPreset(pkg)) return 0;
   var selected = selectedServicesInOrder();
+  // Vergleichswert = reguläre Einzelpreise der enthaltenen/upgegradeten Module.
+  // Bei Upgrades zahlt der Gast zusätzlich den Aufpreis (chargeTotal) -> dieser mindert die Ersparnis.
   var comparableRegularPp = selected.reduce(function(sum, service) {
+    if (service.packageCovered || service.upgradeFromId) {
+      var contrib = Number(service.regularValuePerGuest || serviceRegularValuePerGuest(findService(service.id), state.guests) || 0);
+      if (service.upgradeFromId && service.chargeTotal != null) {
+        contrib -= state.guests > 0 ? Number(service.chargeTotal || 0) / state.guests : 0;
+      }
+      return sum + contrib;
+    }
+    return sum;
+  }, 0);
+  return Math.max(0, comparableRegularPp - packagePresetPrice(pkg));
+}
+
+// Summe der regulären Einzelpreise der im Paket enthaltenen/upgegradeten Module (für die Transparenz-Anzeige).
+function packageComparableRegularPerGuest(pkg) {
+  if (!packageUsesPreset(pkg)) return 0;
+  return selectedServicesInOrder().reduce(function(sum, service) {
     if (service.packageCovered || service.upgradeFromId) {
       return sum + Number(service.regularValuePerGuest || serviceRegularValuePerGuest(findService(service.id), state.guests) || 0);
     }
     return sum;
   }, 0);
-  return Math.max(0, comparableRegularPp - packagePresetPrice(pkg));
 }
 
 function pushRuleNotice(list, text) {
@@ -3144,6 +3304,7 @@ function renderPackages() {
   var filtered = getActivePackages().filter(function(pkg) {
     if (!isAvailableForSpace(pkg)) return false;
     if (!isPackageBookable(pkg)) return false;
+    if (!monthAllowsPackage(pkg)) return false;
     if (!selectedOccasion) return true;
     return !pkg.occasions.length || pkg.occasions.indexOf(selectedOccasion) !== -1;
   });
@@ -3455,8 +3616,11 @@ function renderModuleTabs(tabs) {
     container.innerHTML = '';
     return;
   }
-  container.innerHTML = tabs.map(function(tab) {
-    return '<button class="module-tab' + (tab.id === activeServiceCategory ? ' active' : '') + '" type="button" data-module-category="' + esc(tab.id) + '">' + esc(categoryLabel(tab)) + '</button>';
+  var activeIdx = tabs.findIndex(function(t) { return t.id === activeServiceCategory; });
+  if (activeIdx < 0) activeIdx = 0;
+  container.innerHTML = tabs.map(function(tab, i) {
+    var cls = 'module-tab' + (tab.id === activeServiceCategory ? ' active' : (i < activeIdx ? ' done' : ''));
+    return '<button class="' + cls + '" type="button" data-module-category="' + esc(tab.id) + '">' + esc(categoryLabel(tab)) + '</button>';
   }).join('');
   container.querySelectorAll('[data-module-category]').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -3467,12 +3631,74 @@ function renderModuleTabs(tabs) {
   });
 }
 
+function activeCategoryIndex() {
+  var idx = (currentModuleTabs || []).findIndex(function(t) { return t.id === activeServiceCategory; });
+  return idx < 0 ? 0 : idx;
+}
+
+function updateCategoryProgress() {
+  var box = document.getElementById('categoryProgress');
+  var nextBtn = document.getElementById('step3NextBtn');
+  var tabs = currentModuleTabs || [];
+  var total = tabs.length;
+  var idx = activeCategoryIndex();
+  if (box) {
+    if (total > 1) {
+      box.textContent = 'Kategorie ' + (idx + 1) + ' von ' + total + ': ' + categoryLabel(tabs[idx] || {});
+      box.style.display = '';
+    } else {
+      box.style.display = 'none';
+    }
+  }
+  if (nextBtn) {
+    var isLast = idx >= total - 1;
+    var label = (total > 1 && !isLast) ? 'Weiter: ' + categoryLabel(tabs[idx + 1] || {}) : 'Weiter zur Anfrage';
+    nextBtn.innerHTML = esc(label) + ' <span class="arrow">→</span>';
+  }
+}
+
+function scrollToModuleSection() {
+  var el = document.getElementById('moduleTabs');
+  if (el && !isInIframe()) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else notifyHeight();
+}
+
+function stepCategoryForward() {
+  var tabs = currentModuleTabs || [];
+  var idx = activeCategoryIndex();
+  if (tabs.length > 1 && idx < tabs.length - 1) {
+    activeServiceCategory = tabs[idx + 1].id;
+    renderServiceList();
+    preloadVisibleCatalogAssets();
+    scrollToModuleSection();
+    return;
+  }
+  goStep(4);
+}
+
+function stepCategoryBack() {
+  var tabs = currentModuleTabs || [];
+  var idx = activeCategoryIndex();
+  if (tabs.length > 1 && idx > 0) {
+    activeServiceCategory = tabs[idx - 1].id;
+    renderServiceList();
+    preloadVisibleCatalogAssets();
+    scrollToModuleSection();
+    return;
+  }
+  goStep(2);
+}
+
 function renderServiceList() {
   var ui = currentUi();
   var list = document.getElementById('serviceList');
-  var avail = getActiveServices().filter(isAvailableForSpace);
+  var avail = getActiveServices().filter(isAvailableForSpace).filter(function(service) {
+    return monthAllowsModule(service) || !!state.services[service.id];
+  });
   var tabs = buildModuleCategoryTabs(avail);
+  currentModuleTabs = tabs;
   renderModuleTabs(tabs);
+  updateCategoryProgress();
   var activeTab = tabs.find(function(tab) { return tab.id === activeServiceCategory; }) || tabs[0];
   var visibleIds = {};
   (activeTab && activeTab.moduleIds || []).forEach(function(id) { visibleIds[id] = true; });
@@ -3501,10 +3727,14 @@ function renderServiceList() {
       : upgradeFrom
       ? '<div class="price-val">' + esc(fmtEur(currentPrice)) + '</div><div class="price-sub">' + esc(ui.upgradeBadge) + '</div>'
       : service.priceType === 'flat'
-      ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">Flat</div>'
+      ? (Number(currentPrice) > 0
+          ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">Flat</div>'
+          : '<div class="price-val">' + esc(ui.inclusive) + '</div>')
       : service.priceType === 'budget'
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
-        : '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>';
+        : (Number(currentPrice) > 0
+          ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
+          : '<div class="price-val">' + esc(ui.inclusive) + '</div>');
     if (timeSurcharge > 0) {
       priceLabel += '<div class="price-sub">' + esc(serviceTimeSurchargeLabel(service)) + ' Zeitaufschlag</div>';
     }
@@ -3537,7 +3767,9 @@ function renderServiceList() {
 	          var optImg = renderCatalogImage(option.imageUrl, 'service-option-img');
 	          var optPrice = option.priceOverride === '' || option.priceOverride == null
 	            ? ''
-	            : '<div class="service-option-price">' + esc(fmtEur(option.priceOverride) + ui.perGuest) + '</div>';
+	            : (Number(option.priceOverride) > 0
+	                ? '<div class="service-option-price">' + esc(fmtEur(option.priceOverride) + ui.perGuest) + '</div>'
+	                : '<div class="service-option-price">' + esc(ui.inclusive) + '</div>');
 	          return '<div class="service-option-card' + (optSelected ? ' selected' : '') + '" data-service-option="' + esc(service.id) + '" data-option-id="' + esc(option.optionId) + '">' +
 	            optImg +
 	            '<div class="service-option-body">' +
@@ -3821,6 +4053,7 @@ function updateSummary() {
   document.getElementById('sumWaitlist').hidden = !(state.waitlist && state.selectedDate);
 
   var selected = selectedServicesInOrder();
+  var promoRewards = activePromoRewards();
   var container = document.getElementById('sum-services');
   var badge = '';
   var pkg = null;
@@ -3862,13 +4095,23 @@ function updateSummary() {
       var ppContrib = service.priceType === 'flat'
         ? (state.guests > 0 ? Math.round(service.price / state.guests * 100) / 100 : 0)
         : service.price;
-      var label = service.priceType === 'flat'
-        ? fmtEur(service.price) + ' flat'
-        : service.price + ' €' + ui.perGuest;
+      var isReward = !!promoRewards[service.id];
+      var isFree = isReward || Number(service.price) <= 0;
+      var label = isFree
+        ? (isReward ? '🎁 gratis · ' + promoRewards[service.id] : ui.inclusive)
+        : (service.priceType === 'flat' ? fmtEur(service.price) + ' flat' : service.price + ' €' + ui.perGuest);
       var name = service.name + (service.optionName ? ' - ' + service.optionName : '');
-      return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(fmtEur(ppContrib) + ui.perGuest) + '</span></div>' +
-        timeSurchargeRow(findService(service.id), service.name);
+      var sval = isFree ? (isReward ? 'gratis' : ui.inclusive) : (fmtEur(ppContrib) + ui.perGuest);
+      return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(sval) + '</span></div>' +
+        (isReward ? '' : timeSurchargeRow(findService(service.id), service.name));
     }).join('');
+    // Aktions-Belohnungen, die noch nicht in der Auswahl sind, als gratis Bonus-Zeile zeigen
+    Object.keys(promoRewards).forEach(function(rewardId) {
+      if (state.services[rewardId]) return;
+      var svc = findService(rewardId);
+      if (!svc) return;
+      rows += '<div class="summary-service"><span class="sname">' + esc(svc.name) + '<small>' + esc('🎁 gratis · ' + promoRewards[rewardId]) + '</small></span><span class="sval">gratis</span></div>';
+    });
     if (state.nightSurcharge > 0) {
       var nightPp = state.guests > 0 ? Math.round(state.nightSurcharge / state.guests * 100) / 100 : 0;
       rows += '<div class="summary-service"><span class="sname">🌙 ' + esc(ui.nightSurcharge) + '<small>' + esc(state.nightHours + ' × ' + runtimeSettings.nightRate + ' €') + '</small></span><span class="sval">' + esc(fmtEur(nightPp) + ui.perGuest) + '</span></div>';
@@ -3877,13 +4120,23 @@ function updateSummary() {
       totalSavingsPerGuest += Number(state.discount.amountPerGuest || (state.guests > 0 ? state.discount.amount / state.guests : 0));
     }
     if (totalSavingsPerGuest > 0) {
-      rows += '<div class="summary-savings">' + esc(replaceTokens(ui.packageSavings, { amount: fmtEur(totalSavingsPerGuest) })) + '</div>';
+      var savingsSub = '';
+      if (usesPreset) {
+        var regularComparable = packageComparableRegularPerGuest(pkg);
+        if (regularComparable > 0) {
+          savingsSub = '<div class="summary-savings-sub">' + esc('Enthaltene Leistungen regulär ' + fmtEur(regularComparable) + ui.perGuest + ' · Paketpreis ' + fmtEur(packageBasePerGuest) + ui.perGuest) + '</div>';
+        }
+      }
+      rows += '<div class="summary-savings">' + esc(replaceTokens(ui.packageSavings, { amount: fmtEur(totalSavingsPerGuest) })) + savingsSub + '</div>';
     }
     container.innerHTML = badge + rows;
   }
   var total = selected.reduce(function(sum, service) {
     if (service.packageCovered) {
       return sum;
+    }
+    if (promoRewards[service.id]) {
+      return sum; // Aktions-Belohnung ist gratis
     }
     if (service.chargeTotal != null) return sum + service.chargeTotal + serviceTimeSurchargeTotal(findService(service.id));
     return sum + (service.priceType === 'flat' ? service.price : service.price * state.guests) + serviceTimeSurchargeTotal(findService(service.id));
@@ -3904,6 +4157,7 @@ function updateSummary() {
   }
   var perPerson = state.guests > 0 && total > 0 ? Math.round(total / state.guests * 100) / 100 : 0;
   document.getElementById('sum-total').textContent = perPerson > 0 ? fmtEur(perPerson) + ui.perGuest : '– €/Gast';
+  renderPromoBanner();
   scheduleAbandonedDraftSave();
 }
 
@@ -3941,6 +4195,13 @@ function goStep(step) {
     if (!validateRequiredServiceOptions()) { showFormNotice(ui.errors.serviceOptions, 3); return; }
   }
   clearFormNotice();
+  // Beim Betreten der Leistungen-Seite die geführte Kategorie-Navigation am Anfang starten.
+  if (step === 3 && state.currentStep !== 3) {
+    activeServiceCategory = '';
+    applyMonthRequiredSelections();
+    renderMonthNotice();
+    renderServiceList();
+  }
   state.currentStep = step;
   document.querySelectorAll('.panel').forEach(function(panel) { panel.classList.remove('active'); });
   document.getElementById('panel' + step).classList.add('active');
@@ -4083,6 +4344,7 @@ function renderDiscountState(message, kind) {
 }
 
 function applyDiscountCode() {
+  if (!discountFeatureEnabled()) return;
   var input = document.getElementById('discountCode');
   var btn = document.getElementById('discountApplyBtn');
   var code = String(input && input.value || '').trim().toUpperCase().replace(/\s+/g, '');
