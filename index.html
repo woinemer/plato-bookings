@@ -667,6 +667,9 @@ section{padding:120px 56px;}
 .category-progress{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--stone);margin:0 0 12px;}
 .month-notice{margin:0 0 18px;padding:12px 16px;border-radius:var(--radius);background:#fff7e5;border:1px solid rgba(186,159,93,.38);border-left:4px solid var(--gold);color:var(--stone);font-size:13px;font-weight:600;line-height:1.45;}
 .promo-banner{margin:0 0 14px;padding:12px 16px;border-radius:var(--radius);background:#eaf7ef;border:1px solid rgba(63,143,104,.35);border-left:4px solid #3f8f68;color:#235c41;font-size:13px;font-weight:700;line-height:1.45;}
+.promo-banner .promo-line{padding:2px 0;}
+.promo-banner .promo-line.done{color:#1c7a4a;}
+.promo-banner .promo-line em{font-style:normal;font-weight:800;text-transform:uppercase;font-size:11px;letter-spacing:.05em;}
 .service-list{display:flex;flex-direction:column;gap:10px;}
 .service-card{
   border:1px solid var(--border);border-radius:var(--radius);background:white;
@@ -701,6 +704,7 @@ section{padding:120px 56px;}
 .upgrade-badge{display:inline-flex;margin-top:8px;padding:4px 8px;border-radius:4px;background:rgba(76,175,125,.12);border:1px solid rgba(76,175,125,.22);color:#3f8f68;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
 .service-price{text-align:right;flex-shrink:0;min-width:80px;}
 .service-price .price-val{font-family:var(--serif);font-size:20px;color:var(--dark);letter-spacing:-.01em;}
+.service-price .price-val.price-note{font-size:13px;font-style:italic;color:var(--stone);}
 .service-price .price-sub{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--stone);margin-top:2px;}
 .service-price .price-old{text-decoration:line-through;text-decoration-thickness:1px;color:var(--stone);opacity:.75;}
 .service-checkbox{
@@ -1356,6 +1360,9 @@ var DEFAULT_PUBLIC_CONTENT = {
   publicPollingEnabled: 'true',
   publicPollingSeconds: '300',
   discountFeatureEnabled: 'true',
+  nightSurchargeEnabled: 'true',
+  nightSurchargeFromHour: '24',
+  nightSurchargeMode: 'per_hour',
   bookingTitle: 'Termin unverbindlich anfragen.',
   bookingSub: 'In wenigen Schritten zu deiner persönlichen Anfrage - wir melden uns innerhalb von 24 Stunden.',
   smallGroupEnabled: 'true',
@@ -1690,7 +1697,10 @@ var runtimeSettings = {
   minDurationHours: 2,
   maxDurationHours: 8,
   minLeadDays: 0,
-  blockedWeekdays: []
+  blockedWeekdays: [],
+  nightSurchargeEnabled: true,
+  nightFromMinutes: 1440,
+  nightMode: 'per_hour'
 };
 var calToday = new Date();
 var calYear = calToday.getFullYear();
@@ -1699,6 +1709,8 @@ var pkgOpen = false;
 var lastRuleMessages = [];
 var activeServiceCategory = '';
 var currentModuleTabs = [];
+var promoActiveKeys = {};
+var _promoSyncing = false;
 
 var PHONE_COUNTRIES = [
   { code: 'DE', flag: '🇩🇪', name: 'Deutschland', dial: '+49' },
@@ -1974,9 +1986,14 @@ function fmtEur(value) {
   return Number(value || 0).toLocaleString(locale(), { style: 'currency', currency: 'EUR' });
 }
 
-// Für 0-€-Positionen keinen Preis, sondern "inklusive" anzeigen (sonst regulärer Preis).
-function fmtEurOrInclusive(value) {
-  return Number(value || 0) > 0 ? fmtEur(value) : currentUi().inclusive;
+// 0-€-/preislose Module: optionaler Freitext-Hinweis pro Modul (z.B. "auf Anfrage", "à la carte").
+function servicePriceNote(service) {
+  return service && service.priceNote ? String(service.priceNote) : '';
+}
+// Preis-Markup für 0-€-Module in der Service-Card: Hinweis falls gesetzt, sonst gar kein Preis.
+function zeroPriceMarkup(service) {
+  var note = servicePriceNote(service);
+  return note ? '<div class="price-val price-note">' + esc(note) + '</div>' : '';
 }
 
 // Rabattcode-Funktion global an/aus (nur explizit 'false' deaktiviert -> backward-compatible).
@@ -2422,7 +2439,28 @@ function updateRuntimeSettings() {
     .split(',')
     .map(function(part) { return parseInt(part.trim(), 10); })
     .filter(function(day) { return !isNaN(day); });
+  runtimeSettings.nightSurchargeEnabled = getContentValue('nightSurchargeEnabled') !== 'false';
+  runtimeSettings.nightFromMinutes = (parseInt(getContentValue('nightSurchargeFromHour'), 10) || 24) * 60;
+  var nm = getContentValue('nightSurchargeMode');
+  runtimeSettings.nightMode = (nm === 'flat' || nm === 'per_guest') ? nm : 'per_hour';
   state.guests = clamp(state.guests || runtimeSettings.minGuests, runtimeSettings.minGuests, runtimeSettings.maxGuests);
+}
+
+// Nachtzuschlag je Modus berechnen (pro Stunde / pauschal / pro Gast)
+function computeNightSurcharge(nightHours) {
+  if (runtimeSettings.nightSurchargeEnabled === false || nightHours <= 0) return 0;
+  var rate = runtimeSettings.nightRate;
+  var mode = runtimeSettings.nightMode || 'per_hour';
+  if (mode === 'per_guest') return rate * (state.guests || 0);
+  if (mode === 'flat') return rate;
+  return nightHours * rate;
+}
+function nightSurchargeLabel(nightHours) {
+  var rate = runtimeSettings.nightRate;
+  var mode = runtimeSettings.nightMode || 'per_hour';
+  if (mode === 'per_guest') return rate + ' €/Gast × ' + (state.guests || 0) + ' Gäste';
+  if (mode === 'flat') return 'Pauschal ' + rate + ' €';
+  return nightHours + ' × ' + rate + ' €';
 }
 
 function applyHeadline(el, first, second, useDeJoiner) {
@@ -2751,8 +2789,20 @@ function applyMonthRequiredSelections() {
 function parsePromotions() {
   try { var a = JSON.parse(getContentValue('promotionsJson') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
 }
+// Heutiges Datum als YYYY-MM-DD (für Aktions-Zeitlimit)
+function todayKey() {
+  var d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function promoDateValid(promo) {
+  var t = todayKey();
+  if (promo.validFrom && t < String(promo.validFrom)) return false;
+  if (promo.validUntil && t > String(promo.validUntil)) return false;
+  return true;
+}
+// Aktiv UND innerhalb des Gültigkeitszeitraums (leer = endlos)
 function activePromotions() {
-  return parsePromotions().filter(function(p) { return p && p.active !== false; });
+  return parsePromotions().filter(function(p) { return p && p.active !== false && promoDateValid(p); });
 }
 function promoSatisfied(promo) {
   var trigMods = promo.triggerModuleIds || [];
@@ -2775,14 +2825,55 @@ function activePromoRewards() {
 function isPromoReward(serviceId) {
   return Object.prototype.hasOwnProperty.call(activePromoRewards(), serviceId);
 }
+function promoDefaultText(promo) {
+  var rewardNames = (promo.rewardModuleIds || []).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
+  var trigNames = (promo.triggerModuleIds || []).map(function(id) { var s = findService(id); return s ? s.name : ''; })
+    .concat((promo.triggerPackageIds || []).map(function(id) { var p = findPackage(id); return p ? p.name : ''; })).filter(Boolean);
+  if (trigNames.length && rewardNames.length) return 'Buche ' + trigNames.join(' / ') + ' und erhalte ' + rewardNames.join(', ') + ' gratis.';
+  if (rewardNames.length) return rewardNames.join(', ') + ' gratis.';
+  return promo.name || 'Aktion';
+}
+// Proaktiver Banner: bewirbt alle aktiven, gültigen Aktionen; ausgelöste mit „aktiviert".
 function renderPromoBanner() {
   var box = document.getElementById('promoBanner');
   if (!box) return;
-  var hits = activePromotions().filter(promoSatisfied);
-  var texts = hits.map(function(p) { return p.textDe || ((p.name || 'Aktion') + ': Gratis-Leistung inklusive!'); });
-  if (!texts.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
-  box.innerHTML = texts.map(function(t) { return '🎁 ' + esc(t); }).join('<br>');
+  var promos = activePromotions();
+  if (!promos.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.innerHTML = promos.map(function(p) {
+    var done = promoSatisfied(p);
+    var text = p.textDe || promoDefaultText(p);
+    return '<div class="promo-line' + (done ? ' done' : '') + '">' + (done ? '✓ ' : '🎁 ') + esc(text) + (done ? ' <em>– aktiviert</em>' : '') + '</div>';
+  }).join('');
   box.style.display = '';
+}
+// Belohnungs-Module bei Auslösung automatisch auswählen (edge-getriggert -> manuelles Abwählen bleibt bestehen).
+function syncPromotionSelections() {
+  var promos = activePromotions();
+  var selectedIds = {};
+  Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
+  var changed = false;
+  var nowKeys = {};
+  promos.forEach(function(promo, idx) {
+    if (!promoSatisfied(promo)) return;
+    var key = String(idx);
+    nowKeys[key] = (promo.rewardModuleIds || []).slice();
+    if (!promoActiveKeys[key]) {
+      (promo.rewardModuleIds || []).forEach(function(id) { if (findService(id) && !selectedIds[id]) { selectedIds[id] = true; changed = true; } });
+    }
+  });
+  Object.keys(promoActiveKeys).forEach(function(key) {
+    if (nowKeys[key]) return;
+    (promoActiveKeys[key] || []).forEach(function(id) { if (selectedIds[id]) { delete selectedIds[id]; changed = true; } });
+  });
+  promoActiveKeys = nowKeys;
+  if (!changed) return false;
+  var packageMaps = currentPackageMaps();
+  if (packageMaps.pkg) packageChargeableIds(packageMaps.pkg).forEach(function(mid) { if (findService(mid)) selectedIds[mid] = true; });
+  var anchor = packageMaps.pkg ? (packageChargeableIds(packageMaps.pkg)[0] || '') : (Object.keys(selectedIds)[0] || '');
+  normalizeSelectedIds(selectedIds, [], anchor);
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, !!packageMaps.pkg, meta.covered, meta.upgrades);
+  return true;
 }
 
 function renderMonthNotice() {
@@ -2821,6 +2912,7 @@ function normalizeServices(list) {
       surchargeStartTime: normalizeTimeValue(service.surchargeStartTime),
       surchargeFlatPerStartedHour: Number(service.surchargeFlatPerStartedHour || 0),
       defaultOptionId: String(service.defaultOptionId || ''),
+      priceNote: String(service.priceNote || ''),
       options: Array.isArray(service.options) ? service.options.map(function(option) {
         return {
           optionId: String(option.optionId || ''),
@@ -3722,19 +3814,21 @@ function renderServiceList() {
     var timeSurcharge = selected && !packageCovered ? serviceTimeSurchargeTotal(service) : 0;
     var regularInfo = selected ? selectedServiceRegularInfo(service, selectedState) : selectedServiceRegularInfo(service, null);
     var regularLabel = selectedState && selectedState.regularValueLabel ? selectedState.regularValueLabel : regularInfo.label;
-    var priceLabel = packageCovered
+    var priceLabel = (isPromoReward(service.id) && !packageCovered)
+      ? '<div class="price-val price-note">🎁 gratis</div>'
+      : packageCovered
       ? '<div class="price-val price-old">' + esc(regularLabel) + '</div><div class="price-sub">' + esc(ui.packageCoveredBadge) + '</div>'
       : upgradeFrom
       ? '<div class="price-val">' + esc(fmtEur(currentPrice)) + '</div><div class="price-sub">' + esc(ui.upgradeBadge) + '</div>'
       : service.priceType === 'flat'
       ? (Number(currentPrice) > 0
           ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">Flat</div>'
-          : '<div class="price-val">' + esc(ui.inclusive) + '</div>')
+          : zeroPriceMarkup(service))
       : service.priceType === 'budget'
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
         : (Number(currentPrice) > 0
           ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
-          : '<div class="price-val">' + esc(ui.inclusive) + '</div>');
+          : zeroPriceMarkup(service));
     if (timeSurcharge > 0) {
       priceLabel += '<div class="price-sub">' + esc(serviceTimeSurchargeLabel(service)) + ' Zeitaufschlag</div>';
     }
@@ -3769,7 +3863,7 @@ function renderServiceList() {
 	            ? ''
 	            : (Number(option.priceOverride) > 0
 	                ? '<div class="service-option-price">' + esc(fmtEur(option.priceOverride) + ui.perGuest) + '</div>'
-	                : '<div class="service-option-price">' + esc(ui.inclusive) + '</div>');
+	                : '');
 	          return '<div class="service-option-card' + (optSelected ? ' selected' : '') + '" data-service-option="' + esc(service.id) + '" data-option-id="' + esc(option.optionId) + '">' +
 	            optImg +
 	            '<div class="service-option-body">' +
@@ -3967,21 +4061,24 @@ function onTimeChange() {
   var endHour = endHourTotal % 24;
   var endMinute = endTotalMinutes % 60;
   state.endTime = pad(endHour) + ':' + pad(endMinute);
+  var nightFrom = runtimeSettings.nightFromMinutes || 1440;
   var nightHours = 0;
-  for (var i = 0; i < duration; i++) {
-    var slotStart = startMinutes + i * 60;
-    if (slotStart >= 1440 || slotStart + 60 > 1440) nightHours++;
+  if (runtimeSettings.nightSurchargeEnabled !== false) {
+    for (var i = 0; i < duration; i++) {
+      var slotStart = startMinutes + i * 60;
+      if (slotStart >= nightFrom || slotStart + 60 > nightFrom) nightHours++;
+    }
   }
   state.nightHours = nightHours;
-  state.nightSurcharge = nightHours * runtimeSettings.nightRate;
+  state.nightSurcharge = computeNightSurcharge(nightHours);
   summary.style.display = 'flex';
   document.getElementById('tsStart').textContent = startValue;
   document.getElementById('tsEnd').textContent = state.endTime + (endTotalMinutes >= 1440 ? ' ' + ui.nextDay : '');
   document.getElementById('tsDur').textContent = duration + ' h';
   document.getElementById('tsHours').textContent = nightHours > 0 ? String(nightHours) : '-';
-  if (nightHours > 0) {
+  if (state.nightSurcharge > 0) {
     nightBox.style.display = 'block';
-    document.getElementById('nightSurchargeText').innerHTML = '🌙 <strong>' + esc(ui.nightSurcharge) + ':</strong> ' + esc(String(nightHours)) + ' × ' + esc(String(runtimeSettings.nightRate)) + ' € = <strong>' + esc(fmtEur(state.nightSurcharge)) + '</strong>';
+    document.getElementById('nightSurchargeText').innerHTML = '🌙 <strong>' + esc(ui.nightSurcharge) + ':</strong> ' + esc(nightSurchargeLabel(nightHours)) + ' = <strong>' + esc(fmtEur(state.nightSurcharge)) + '</strong>';
   } else {
     nightBox.style.display = 'none';
   }
@@ -4046,6 +4143,15 @@ function scrollToBookingWithOcc(occasion) {
 
 function updateSummary() {
   var ui = currentUi();
+  // Aktions-Belohnungen automatisch aus-/abwählen (edge-getriggert), dann Modulliste aktualisieren
+  if (!_promoSyncing) {
+    _promoSyncing = true;
+    var promoChanged = syncPromotionSelections();
+    _promoSyncing = false;
+    if (promoChanged) renderServiceList();
+  }
+  // Nachtzuschlag (per-Gast-Modus) bei Gästeänderung aktuell halten
+  state.nightSurcharge = computeNightSurcharge(state.nightHours || 0);
   document.getElementById('sum-date').textContent = state.selectedDate ? formatDateLabel(state.selectedDate) : '-';
   document.getElementById('sum-time').textContent = state.selectedTime ? formatTimeSummary(state.selectedTime, state.endTime, state.duration) : '-';
   document.getElementById('sum-guests').textContent = state.guests + ' ' + ui.guestsWord;
@@ -4097,24 +4203,18 @@ function updateSummary() {
         : service.price;
       var isReward = !!promoRewards[service.id];
       var isFree = isReward || Number(service.price) <= 0;
+      var freeNote = isReward ? '🎁 gratis · ' + promoRewards[service.id] : servicePriceNote(findService(service.id));
       var label = isFree
-        ? (isReward ? '🎁 gratis · ' + promoRewards[service.id] : ui.inclusive)
+        ? freeNote
         : (service.priceType === 'flat' ? fmtEur(service.price) + ' flat' : service.price + ' €' + ui.perGuest);
       var name = service.name + (service.optionName ? ' - ' + service.optionName : '');
-      var sval = isFree ? (isReward ? 'gratis' : ui.inclusive) : (fmtEur(ppContrib) + ui.perGuest);
+      var sval = isFree ? (isReward ? 'gratis' : freeNote) : (fmtEur(ppContrib) + ui.perGuest);
       return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(sval) + '</span></div>' +
         (isReward ? '' : timeSurchargeRow(findService(service.id), service.name));
     }).join('');
-    // Aktions-Belohnungen, die noch nicht in der Auswahl sind, als gratis Bonus-Zeile zeigen
-    Object.keys(promoRewards).forEach(function(rewardId) {
-      if (state.services[rewardId]) return;
-      var svc = findService(rewardId);
-      if (!svc) return;
-      rows += '<div class="summary-service"><span class="sname">' + esc(svc.name) + '<small>' + esc('🎁 gratis · ' + promoRewards[rewardId]) + '</small></span><span class="sval">gratis</span></div>';
-    });
     if (state.nightSurcharge > 0) {
       var nightPp = state.guests > 0 ? Math.round(state.nightSurcharge / state.guests * 100) / 100 : 0;
-      rows += '<div class="summary-service"><span class="sname">🌙 ' + esc(ui.nightSurcharge) + '<small>' + esc(state.nightHours + ' × ' + runtimeSettings.nightRate + ' €') + '</small></span><span class="sval">' + esc(fmtEur(nightPp) + ui.perGuest) + '</span></div>';
+      rows += '<div class="summary-service"><span class="sname">🌙 ' + esc(ui.nightSurcharge) + '<small>' + esc(nightSurchargeLabel(state.nightHours)) + '</small></span><span class="sval">' + esc(fmtEur(nightPp) + ui.perGuest) + '</span></div>';
     }
     if (state.discount && state.discount.amount > 0) {
       totalSavingsPerGuest += Number(state.discount.amountPerGuest || (state.guests > 0 ? state.discount.amount / state.guests : 0));
@@ -4201,6 +4301,8 @@ function goStep(step) {
     applyMonthRequiredSelections();
     renderMonthNotice();
     renderServiceList();
+    renderPromoBanner();
+    updateSummary();
   }
   state.currentStep = step;
   document.querySelectorAll('.panel').forEach(function(panel) { panel.classList.remove('active'); });
@@ -4828,6 +4930,9 @@ function applyBootRuntime(runtime) {
   if (Array.isArray(runtime.blockedWeekdays)) {
     runtimeSettings.blockedWeekdays = runtime.blockedWeekdays.map(Number).filter(function(day) { return !isNaN(day); });
   }
+  if (runtime.nightSurchargeEnabled != null) runtimeSettings.nightSurchargeEnabled = runtime.nightSurchargeEnabled !== false;
+  if (runtime.nightFromMinutes != null) runtimeSettings.nightFromMinutes = Number(runtime.nightFromMinutes) || runtimeSettings.nightFromMinutes;
+  if (runtime.nightMode != null) runtimeSettings.nightMode = (runtime.nightMode === 'flat' || runtime.nightMode === 'per_guest') ? runtime.nightMode : 'per_hour';
 }
 
 async function bootPublicPage() {
