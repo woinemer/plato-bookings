@@ -1639,9 +1639,9 @@ function renderOccasionCards() {
   var selected = state.occasion || '';
   grid.innerHTML = loadedOccasions.map(function(occ) {
     var active = selected === occ.label ? ' selected' : '';
-    return '<div class="occasion-card' + active + '" data-occ="' + occ.label.replace(/"/g, '&quot;') + '">' +
+    return '<div class="occasion-card' + active + '" data-occ="' + esc(occ.label) + '">' +
            '<div class="oc-icon">' + renderOccasionIcon(occ) + '</div>' +
-           '<div class="oc-label">' + occ.label + '</div></div>';
+           '<div class="oc-label">' + esc(occ.label) + '</div></div>';
   }).join('');
   grid.querySelectorAll('.occasion-card').forEach(function(card) {
     card.addEventListener('click', function() {
