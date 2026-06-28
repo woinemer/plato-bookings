@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -4517,6 +4514,10 @@ function showSuccessPanel(bookingId) {
   var ui = currentUi();
   document.getElementById('mainLayout').style.display = 'none';
   document.getElementById('stepperBlock').style.display = 'none';
+  // Seiten-Header ("Termin unverbindlich anfragen.") auf dem Bestaetigungs-Screen ausblenden -
+  // die Anfrage ist abgeschickt, nur die Bestaetigungskarte soll sichtbar bleiben.
+  var bookingHeader = document.querySelector('.booking-header');
+  if (bookingHeader) bookingHeader.style.display = 'none';
   document.getElementById('successPanel').classList.add('active');
   updateSuccessPanel(state.waitlist);
   if (bookingId) {
