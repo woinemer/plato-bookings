@@ -2081,6 +2081,36 @@ function runServer(name) {
   });
 }
 
+// #9 Resilienz: POST mit Retry/Backoff nur bei Netzwerkfehler oder HTTP 5xx. Liefert das geparste
+// JSON zurueck (wirft NICHT bei {success:false} - das behandelt der Aufrufer). Zusammen mit der
+// serverseitigen Idempotenz (submissionId) erzeugt ein Retry nach erfolgreicher Verarbeitung keine
+// Doppelbuchung.
+function platoDelay(ms) {
+  return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+function postJsonWithRetry(body, retries) {
+  if (retries == null) retries = 2;
+  function attempt(remaining, delay) {
+    return fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body)
+    }).then(function(r) {
+      if (r.status >= 500 && remaining > 0) {
+        return platoDelay(delay).then(function() { return attempt(remaining - 1, delay * 3); });
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }, function(networkErr) {
+      if (remaining > 0) {
+        return platoDelay(delay).then(function() { return attempt(remaining - 1, delay * 3); });
+      }
+      throw networkErr;
+    });
+  }
+  return attempt(retries, 500);
+}
+
 function toggleMobMenu() {
   document.getElementById('mobMenu').classList.toggle('open');
 }
@@ -4916,6 +4946,13 @@ function submitBooking() {
   clearFormNotice();
 
   var payload = buildSubmitPayload();
+  // #9 Idempotenz: einmalige submissionId pro Absende-Vorgang; bleibt bei Retry gleich, damit der
+  // Server eine bereits gespeicherte Buchung erkennt und keine zweite Zeile anlegt.
+  if (!state.submissionId) {
+    state.submissionId = 'SUB-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 9).toUpperCase();
+  }
+  payload.submissionId = state.submissionId;
+
   var submitBtn = document.getElementById('submitBtn');
   setLoading(true);
   submitBtn.disabled = true;
@@ -4923,6 +4960,7 @@ function submitBooking() {
   function handleSuccess(result) {
     setLoading(false);
     if (result && result.success) {
+      state.submissionId = null; // erfolgreich -> naechste Buchung bekommt eine neue ID
       showSuccessPanel(result.bookingId || '');
       return;
     }
@@ -4936,17 +4974,9 @@ function submitBooking() {
     submitBtn.disabled = false;
   }
 
-  fetch(GAS_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'submitBooking', payload: payload })
-  })
-  .then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
-  .then(handleSuccess)
-  .catch(handleFailure);
+  postJsonWithRetry({ action: 'submitBooking', payload: payload }, 2)
+    .then(handleSuccess)
+    .catch(handleFailure);
 }
 
 function seedDevData() {
