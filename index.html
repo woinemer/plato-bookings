@@ -1348,7 +1348,7 @@ var DEFAULT_PUBLIC_CONTENT = {
   bookingStartHour: '10',
   latestEndHour: '26',
   minDurationHours: '2',
-  maxDurationHours: '8',
+  maxDurationHours: '7',
   minLeadDays: '0',
   blockedWeekdays: '',
   maintenanceEnabled: 'false',
@@ -1698,7 +1698,7 @@ var runtimeSettings = {
   bookingStartHour: 10,
   latestEndHour: 26,
   minDurationHours: 2,
-  maxDurationHours: 8,
+  maxDurationHours: 7,
   minLeadDays: 0,
   blockedWeekdays: [],
   nightSurchargeEnabled: true,
@@ -2562,7 +2562,7 @@ function updateRuntimeSettings() {
   runtimeSettings.bookingStartHour = parseInt(getContentValue('bookingStartHour'), 10) || 10;
   runtimeSettings.latestEndHour = parseInt(getContentValue('latestEndHour'), 10) || 26;
   runtimeSettings.minDurationHours = parseInt(getContentValue('minDurationHours'), 10) || 2;
-  runtimeSettings.maxDurationHours = parseInt(getContentValue('maxDurationHours'), 10) || 8;
+  runtimeSettings.maxDurationHours = parseInt(getContentValue('maxDurationHours'), 10) || 7;
   runtimeSettings.minLeadDays = parseInt(getContentValue('minLeadDays'), 10) || 0;
   runtimeSettings.blockedWeekdays = getContentValue('blockedWeekdays')
     .split(',')
@@ -3471,7 +3471,10 @@ function packageEstimate(pkg) {
 
 
 function effectiveSpaceId() {
-  return (state.selectedSpaceId && !state.consultationRequested) ? state.selectedSpaceId : 'plato';
+  // Beratung wird wie ein eigener Pseudo-Raum behandelt, damit Module pro "Beratung" (über
+  // allowedSpaceIds = '__consult__') unabhängig vom Hauptraum 'plato' gesteuert werden können.
+  if (state.consultationRequested) return '__consult__';
+  return state.selectedSpaceId || 'plato';
 }
 
 function isAvailableForSpace(item) {
