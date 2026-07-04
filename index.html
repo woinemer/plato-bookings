@@ -631,6 +631,18 @@ section{padding:120px 56px;}
 .pkg-toggle{font-size:14px;color:var(--stone);transition:transform .25s;}
 .pkg-toggle.open{transform:rotate(180deg);}
 .pkg-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:18px;}
+/* Kompakte Ansicht bei vorausgewähltem/gewähltem Paket */
+.pkg-compact-wrap{padding:16px;}
+.pkg-compact-wrap .pkg-form-grid{padding:14px 0 0;}
+.pkg-selected-compact{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1.5px solid var(--dark);background:var(--cream-2);border-radius:var(--radius);}
+.pkg-sel-info{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0;}
+.pkg-sel-check{color:var(--gold);font-weight:700;}
+.pkg-sel-name{font-family:var(--serif);font-size:16px;color:var(--dark);letter-spacing:-.01em;}
+.pkg-sel-price{font-size:12px;color:var(--stone);}
+.pkg-sel-remove{flex:0 0 auto;background:none;border:1px solid var(--border);border-radius:var(--radius);padding:7px 14px;font-size:12px;font-weight:700;color:var(--stone);cursor:pointer;transition:border-color .15s,color .15s;}
+.pkg-sel-remove:hover{border-color:var(--dark);color:var(--dark);}
+.pkg-more-link{display:inline-block;margin:12px 0 0;background:none;border:none;padding:2px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--gold);cursor:pointer;text-transform:uppercase;}
+.pkg-more-link:hover{text-decoration:underline;}
 .pkg-card{
   border:1px solid var(--border);border-radius:var(--radius);
   padding:18px;cursor:pointer;transition:all .2s;position:relative;background:#fff;
@@ -1195,7 +1207,7 @@ html.iframe-mode .hero { min-height: 0; }
         <div class="field-block" id="packagesBlock" style="display:none">
           <div class="section-label">Fertige Pakete – optional</div>
           <div class="pkg-form-block">
-            <div class="pkg-form-header" onclick="togglePkgOpen()">
+            <div class="pkg-form-header" id="pkgFormHeader" onclick="togglePkgOpen()">
               <div>
                 <div class="pkg-form-label" id="pkgOccasionLabel">Für deinen Anlass</div>
                 <div class="pkg-form-title">Schon entschieden? Fertiges Paket wählen (optional)</div>
@@ -1670,6 +1682,7 @@ var state = {
   guests: 50,
   occasion: null,
   selectedPackage: '',
+  userTouchedPackage: false,
   discountCode: '',
   discount: null,
   newsletter: true,
@@ -3101,7 +3114,8 @@ function normalizePackages(list) {
       startTimeMin: normalizeTimeValue(pkg.startTimeMin),
       startTimeMax: normalizeTimeValue(pkg.startTimeMax),
       active: pkg.active !== false,
-      allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : []
+      allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : [],
+      preselected: pkg.preselected === true
     };
   }).filter(function(pkg) { return pkg.id; });
 }
@@ -3513,30 +3527,27 @@ function reconcileAvailabilitySelection() {
   return changed;
 }
 
-function renderPackages() {
-  var ui = currentUi();
+// Pakete, die im aktuellen Kontext (Raum, Gäste, Anlass, Monat) wähl-/buchbar sind.
+function selectablePackages() {
   var selectedOccasion = state.occasion || '';
-  var filtered = getActivePackages().filter(function(pkg) {
+  return getActivePackages().filter(function(pkg) {
     if (!isAvailableForSpace(pkg)) return false;
     if (!isPackageBookable(pkg)) return false;
     if (!monthAllowsPackage(pkg)) return false;
     if (!selectedOccasion) return true;
     return !pkg.occasions.length || pkg.occasions.indexOf(selectedOccasion) !== -1;
   });
-  var block = document.getElementById('packagesBlock');
-  var occasionLabel = document.getElementById('pkgOccasionLabel');
-  occasionLabel.textContent = selectedOccasion ? ui.packagesForOccasion + ': ' + displayOccasion(selectedOccasion) : ui.packagesForOccasion;
-  if (!filtered.length) {
-    block.style.display = 'none';
-    return;
-  }
-  block.style.display = 'block';
-  var html = '<div class="pkg-form-grid">';
+}
+
+function buildPackageGridHtml(list) {
+  var ui = currentUi();
+  var items = list.slice();
   if (getContentValue('anchoringEnabled') === 'true') {
-    filtered = filtered.slice().sort(function(a, b) { return packageEstimate(b) - packageEstimate(a); });
+    items = items.sort(function(a, b) { return packageEstimate(b) - packageEstimate(a); });
   }
   var popularId = getContentValue('popularPackageId');
-  filtered.forEach(function(pkg) {
+  var html = '<div class="pkg-form-grid">';
+  items.forEach(function(pkg) {
     var selected = state.selectedPackage === pkg.id;
     var ppEstimate = state.guests > 0 ? Math.round(packageEstimate(pkg) / state.guests * 100) / 100 : 0;
     var estimate = replaceTokens(ui.packageEstimate, {
@@ -3565,22 +3576,107 @@ function renderPackages() {
       '</div>';
   });
   html += '</div>';
-  document.getElementById('packagesGrid').innerHTML = html;
-  document.getElementById('packagesGrid').style.display = pkgOpen ? 'block' : 'none';
-  document.querySelectorAll('[data-package-id]').forEach(function(card) {
+  return html;
+}
+
+function wirePackageGrid(root) {
+  (root || document).querySelectorAll('[data-package-id]').forEach(function(card) {
     card.addEventListener('click', function() {
       selectPackage(card.getAttribute('data-package-id'));
     });
   });
 }
 
+// Wählt automatisch ein als "vorausgewählt" markiertes Paket an (Opt-out), sofern verfügbar und
+// der Kunde noch nicht selbst am Paket gedreht hat. Setzt userTouchedPackage NICHT.
+function applyPreselectedPackage() {
+  if (state.userTouchedPackage || state.selectedPackage) return false;
+  var pre = selectablePackages().filter(function(p) { return p.preselected; })[0];
+  if (!pre) return false;
+  var selectedIds = {};
+  packageChargeableIds(pre).forEach(function(moduleId) {
+    if (findService(moduleId)) selectedIds[moduleId] = true;
+  });
+  lastRuleMessages = [];
+  normalizeSelectedIds(selectedIds, lastRuleMessages, packageChargeableIds(pre)[0] || pre.id);
+  state.selectedPackage = pre.id;
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, true, meta.covered, meta.upgrades);
+  pkgOpen = false; // kompakt: volles Grid bleibt hinter "Anderes Paket wählen" eingeklappt
+  return true;
+}
+
+function renderPackages() {
+  var ui = currentUi();
+  var selectedOccasion = state.occasion || '';
+  var filtered = selectablePackages();
+  var block = document.getElementById('packagesBlock');
+  var header = document.getElementById('pkgFormHeader');
+  var occasionLabel = document.getElementById('pkgOccasionLabel');
+  occasionLabel.textContent = selectedOccasion ? ui.packagesForOccasion + ': ' + displayOccasion(selectedOccasion) : ui.packagesForOccasion;
+  var gridEl = document.getElementById('packagesGrid');
+  var pkg = currentPackage();
+
+  // Passt das gewählte Paket nicht mehr zum aktuellen Kontext (z. B. Anlass gewechselt), sauber
+  // abwählen — Modulauswahl bleibt erhalten (wie beim manuellen Abwählen).
+  if (pkg && filtered.indexOf(pkg) === -1) {
+    var keepIds = {};
+    Object.keys(state.services).forEach(function(id) { keepIds[id] = true; });
+    state.selectedPackage = '';
+    commitServiceSelection(keepIds, false, {});
+    pkg = null;
+  }
+
+  // Block nur ausblenden, wenn nichts wählbar UND nichts gewählt ist.
+  if (!filtered.length && !pkg) {
+    block.style.display = 'none';
+    return;
+  }
+  block.style.display = 'block';
+
+  if (pkg) {
+    // Kompakte Ansicht: nur das gewählte Paket + Abwählen; weitere hinter "Anderes Paket wählen".
+    if (header) header.style.display = 'none';
+    var ppEstimate = state.guests > 0 ? Math.round(packageEstimate(pkg) / state.guests * 100) / 100 : 0;
+    var estimate = replaceTokens(ui.packageEstimate, { total: fmtEur(ppEstimate), guests: state.guests });
+    var compact = '<div class="pkg-compact-wrap">' +
+      '<div class="pkg-selected-compact">' +
+        '<div class="pkg-sel-info">' +
+          '<span class="pkg-sel-check">✓</span>' +
+          '<span class="pkg-sel-name">' + esc(pkg.name) + '</span>' +
+          '<span class="pkg-sel-price">' + esc(estimate) + '</span>' +
+        '</div>' +
+        '<button type="button" class="pkg-sel-remove" data-package-remove="' + esc(pkg.id) + '">Abwählen</button>' +
+      '</div>' +
+      '<button type="button" class="pkg-more-link" id="pkgMoreLink">' + (pkgOpen ? '▴ Pakete ausblenden' : '▾ Anderes Paket wählen') + '</button>' +
+      '<div class="pkg-full-grid" style="display:' + (pkgOpen ? 'block' : 'none') + '">' + buildPackageGridHtml(filtered) + '</div>' +
+      '</div>';
+    gridEl.innerHTML = compact;
+    gridEl.style.display = 'block';
+    var removeBtn = gridEl.querySelector('[data-package-remove]');
+    if (removeBtn) removeBtn.addEventListener('click', function() { selectPackage(removeBtn.getAttribute('data-package-remove')); });
+    var moreLink = document.getElementById('pkgMoreLink');
+    if (moreLink) moreLink.addEventListener('click', togglePkgOpen);
+    wirePackageGrid(gridEl);
+    return;
+  }
+
+  // Kein Paket gewählt: normales einklappbares Grid wie bisher.
+  if (header) header.style.display = '';
+  gridEl.innerHTML = buildPackageGridHtml(filtered);
+  gridEl.style.display = pkgOpen ? 'block' : 'none';
+  var icon = document.getElementById('pkgToggleIcon');
+  if (icon) icon.classList.toggle('open', pkgOpen);
+  wirePackageGrid(gridEl);
+}
+
 function togglePkgOpen() {
   pkgOpen = !pkgOpen;
-  document.getElementById('packagesGrid').style.display = pkgOpen ? 'block' : 'none';
-  document.getElementById('pkgToggleIcon').classList.toggle('open', pkgOpen);
+  renderPackages();
 }
 
 function selectPackage(pkgId) {
+  state.userTouchedPackage = true; // echte Kunden-Aktion -> keine Auto-Vorauswahl mehr
   if (state.selectedPackage === pkgId) {
     var selectedIds = {};
     Object.keys(state.services).forEach(function(serviceId) {
@@ -4449,7 +4545,9 @@ function goStep(step) {
   if (step === 3 && state.currentStep !== 3) {
     activeServiceCategory = '';
     applyMonthRequiredSelections();
+    applyPreselectedPackage();
     renderMonthNotice();
+    renderPackages();
     renderServiceList();
     renderPromoBanner();
     updateSummary();
@@ -4796,6 +4894,9 @@ function applyRecoveredDraftPayload(payload) {
   state.discountCode = payload.discountCode || state.discountCode;
   state.selectedSpaceId = payload.selectedSpaceId || state.selectedSpaceId;
   state.consultationRequested = !!payload.consultationRequested;
+  // Gespeicherten Zustand respektieren: hatte der Gast schon eine Paket-/Modul-Entscheidung, keine
+  // erneute Auto-Vorauswahl. Bei sehr frühem Draft (nur Datum/Gäste) darf die Vorauswahl noch greifen.
+  state.userTouchedPackage = !!(payload.selectedPackage || payload.packageId || (Array.isArray(payload.services) && payload.services.length));
   if (Array.isArray(payload.services)) {
     var selectedIds = {};
     payload.services.forEach(function(item) {
