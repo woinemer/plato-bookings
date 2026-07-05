@@ -3284,7 +3284,9 @@ function findUpgradeBase(service, selectedIds, pkg) {
   return packageChargeableIds(pkg).map(findService).filter(Boolean).find(function(base) {
     if (!selectedIds[base.id]) return false;
     var conflicts = (service.excludes || []).indexOf(base.id) !== -1 || (base.excludes || []).indexOf(service.id) !== -1;
-    return conflicts && serviceComparableTotal(service) > serviceComparableTotal(base);
+    // Jeder Ausschluss-Konflikt mit einem paket-enthaltenen Modul löst den Upgrade-Swap aus
+    // (unabhängig vom Preis) -> Doppelauswahl ist unmöglich; Aufpreis ist 0, falls nicht teurer.
+    return conflicts;
   }) || null;
 }
 
