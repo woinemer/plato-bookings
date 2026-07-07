@@ -4793,13 +4793,30 @@ function applyDiscountCode() {
     return;
   }
   state.discountCode = code;
-  var payload = buildSubmitPayload();
-  payload.discountCode = code;
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'Prüfen...';
   }
   renderDiscountState('Rabattcode wird geprüft...', '');
+  // Zuerst das/die vom Code adressierte(n) Modul(e)/Paket automatisch anwählen (Vorschau),
+  // damit der Rabatt einen rabattierbaren Betrag hat, dann validieren.
+  fetchDiscountPreview(code).then(function() {
+    var p = state.discountPreview;
+    if (p && String(p.code || '').toUpperCase() === code && p.discountType === 'free_module') {
+      // Gratis-Module sind bereits ausgewählt + gratis (Reward-Map). Kein Euro-Rabatt (Konsistenz-Guard).
+      if (btn) btn.disabled = false;
+      var names = (p.freeModuleIds || []).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
+      renderDiscountState((names.length ? names.join(', ') + ' ' : '') + 'gratis für dich ausgewählt.', 'success');
+      updateSummary();
+      return;
+    }
+    validateDiscountNow(code, input, btn);
+  });
+}
+
+function validateDiscountNow(code, input, btn) {
+  var payload = buildSubmitPayload();
+  payload.discountCode = code;
   fetch(GAS_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -4840,6 +4857,7 @@ function applyRecoveredDiscountCode() {
   if (!code || !state.selectedDate || !state.selectedTime || !state.duration || !state.occasion) return Promise.resolve();
   state.discountCode = code;
   if (input) input.value = code;
+  applyDiscountCodeSelections(state.discountPreview); // Ziel-Modul/-Paket sicherstellen, dann validieren
   renderDiscountState('Rabattcode wird geprüft...', '');
   var payload = buildSubmitPayload();
   payload.discountCode = code;
@@ -4965,8 +4983,8 @@ function prefillDiscountFromUrl() {
 // Leichte Vorschau des Codes holen (Typ/Wert/Gratis-Module), um Belohnung schon waehrend der Buchung
 // zu zeigen. Volle Pruefung bleibt im Checkout.
 function fetchDiscountPreview(code) {
-  if (!code || !discountFeatureEnabled()) return;
-  fetch(GAS_API_URL, {
+  if (!code || !discountFeatureEnabled()) return Promise.resolve();
+  return fetch(GAS_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: 'previewDiscountCode', payload: { code: code } })
@@ -4976,7 +4994,7 @@ function fetchDiscountPreview(code) {
     if (!res || !res.success || !res.valid || !res.preview) return;
     if (String(state.discountCode || '').toUpperCase() !== String(res.preview.code || '').toUpperCase()) return;
     state.discountPreview = res.preview;
-    if (res.preview.discountType === 'free_module') applyDiscountFreeModules();
+    applyDiscountCodeSelections(res.preview);
     renderDiscountPreviewBanner();
     renderServiceList();
     updateSummary();
@@ -5003,20 +5021,44 @@ function activeRewardModules() {
   return map;
 }
 
-// Gratis-Module der Code-Vorschau automatisch anwaehlen (einmalig; manuelles Abwaehlen bleibt moeglich).
-function applyDiscountFreeModules() {
-  var ids = Object.keys(discountRewardMap());
-  if (!ids.length) return;
+// Ziel-Module eines Codes: Gratis-Module (free_module) + adressierte Module (targetType 'modules').
+function discountTargetModuleIds(p) {
+  if (!p) return [];
+  var ids = [];
+  if (p.discountType === 'free_module') ids = ids.concat(p.freeModuleIds || []);
+  if (p.targetType === 'modules') ids = ids.concat(p.targetIds || []);
+  var seen = {};
+  return ids.filter(function(id) { if (seen[id] || !findService(id)) return false; seen[id] = true; return true; });
+}
+
+// Ziel-Paket eines Codes (targetType 'packages'): erstes buchbares Paket aus targetIds.
+function discountTargetPackageId(p) {
+  if (!p || p.targetType !== 'packages' || !Array.isArray(p.targetIds)) return '';
+  for (var i = 0; i < p.targetIds.length; i++) {
+    var pk = findPackage(p.targetIds[i]);
+    if (pk && isPackageBookable(pk)) return pk.id;
+  }
+  return '';
+}
+
+// Wählt das/die vom Code adressierte(n) Modul(e) + Paket automatisch an (einmalig; bleibt abwählbar).
+function applyDiscountCodeSelections(p) {
+  p = p || state.discountPreview;
+  if (!p) return;
+  var pkgId = discountTargetPackageId(p);
+  var modIds = discountTargetModuleIds(p);
   var selectedIds = {};
   Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
   var changed = false;
-  ids.forEach(function(id) { if (!selectedIds[id]) { selectedIds[id] = true; changed = true; } });
+  if (pkgId && state.selectedPackage !== pkgId) { state.selectedPackage = pkgId; changed = true; }
+  modIds.forEach(function(id) { if (!selectedIds[id]) { selectedIds[id] = true; changed = true; } });
   if (!changed) return;
-  var packageMaps = currentPackageMaps();
-  if (packageMaps.pkg) packageChargeableIds(packageMaps.pkg).forEach(function(mid) { if (findService(mid)) selectedIds[mid] = true; });
-  normalizeSelectedIds(selectedIds, [], ids[0]);
+  var pkg = currentPackage();
+  if (pkg) packageChargeableIds(pkg).forEach(function(mid) { if (findService(mid)) selectedIds[mid] = true; });
+  lastRuleMessages = [];
+  normalizeSelectedIds(selectedIds, lastRuleMessages, modIds[0] || (pkg ? (packageChargeableIds(pkg)[0] || '') : ''));
   var meta = buildSelectionMeta(selectedIds);
-  commitServiceSelection(selectedIds, !!packageMaps.pkg, meta.covered, meta.upgrades);
+  commitServiceSelection(selectedIds, !!pkg, meta.covered, meta.upgrades);
 }
 
 // Info-Banner (Sidebar) fuer einen per Link aktivierten Rabattcode.
@@ -5035,6 +5077,13 @@ function renderDiscountPreviewBanner() {
     text = fmtEur(p.discountValue) + ' /Gast Rabatt im Angebot';
   } else {
     text = fmtEur(p.discountValue) + ' Rabatt im Angebot';
+  }
+  // Hinweis auf automatisch vorausgewähltes Ziel-Modul/-Paket (bei free_module steht es schon oben).
+  if (p.discountType !== 'free_module') {
+    var targetNames = discountTargetModuleIds(p).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
+    var tPkgId = discountTargetPackageId(p);
+    if (tPkgId) { var tp = findPackage(tPkgId); if (tp) targetNames.push(tp.name); }
+    if (targetNames.length) text += ' · ' + targetNames.join(', ') + ' vorausgewählt';
   }
   el.innerHTML = '<span class="sdb-code">🎟️ ' + esc(p.code) + '</span><span class="sdb-text">' + esc(text) + '</span>';
   el.hidden = false;
