@@ -811,6 +811,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 }
 .summary-eyebrow::before{content:"";width:20px;height:1px;background:var(--gold-line);}
 .summary-title{font-family:var(--serif);font-size:24px;color:var(--beige);margin-bottom:24px;letter-spacing:-.01em;line-height:1.15;}
+.summary-discount-banner{display:flex;flex-direction:column;gap:2px;margin:0 0 18px;padding:11px 14px;border-radius:8px;background:rgba(186,159,93,.16);border:1px solid rgba(186,159,93,.42);}
+.summary-discount-banner[hidden]{display:none;}
+.summary-discount-banner .sdb-code{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;}
+.summary-discount-banner .sdb-text{font-size:12.5px;color:var(--beige);line-height:1.4;}
 .summary-row{display:flex;justify-content:space-between;align-items:flex-start;font-size:12px;color:rgba(217,208,188,.55);margin-bottom:12px;gap:10px;letter-spacing:.02em;}
 .summary-row .val{color:var(--beige);text-align:right;font-weight:500;font-family:var(--serif);font-size:14px;letter-spacing:-.005em;}
 .summary-divider{height:1px;background:rgba(217,208,188,.1);margin:18px 0;}
@@ -1316,6 +1320,7 @@ html.iframe-mode .hero { min-height: 0; }
     <!-- SIDEBAR -->
     <div class="summary">
       <div class="summary-eyebrow">Deine Anfrage</div>
+      <div class="summary-discount-banner" id="sumDiscountBanner" hidden></div>
       <div class="summary-title" id="sum-title">Dein Abend im Gewölbe</div>
       <div class="summary-row"><span>Datum</span><span class="val" id="sum-date">–</span></div>
       <div class="summary-row"><span>Zeit</span><span class="val" id="sum-time">–</span></div>
@@ -1685,6 +1690,7 @@ var state = {
   userTouchedPackage: false,
   discountCode: '',
   discount: null,
+  discountPreview: null,
   newsletter: true,
   services: {},
   selectedSpaceId: '',
@@ -2965,7 +2971,7 @@ function activePromoRewards() {
   return rewards;
 }
 function isPromoReward(serviceId) {
-  return Object.prototype.hasOwnProperty.call(activePromoRewards(), serviceId);
+  return Object.prototype.hasOwnProperty.call(activeRewardModules(), serviceId);
 }
 function promoDefaultText(promo) {
   var rewardNames = (promo.rewardModuleIds || []).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
@@ -4407,7 +4413,7 @@ function updateSummary() {
   document.getElementById('sumWaitlist').hidden = !(state.waitlist && state.selectedDate);
 
   var selected = selectedServicesInOrder();
-  var promoRewards = activePromoRewards();
+  var promoRewards = activeRewardModules();
   var container = document.getElementById('sum-services');
   var badge = '';
   var pkg = null;
@@ -4555,7 +4561,9 @@ function goStep(step) {
     updateSummary();
   }
   // Vorbefuellten Rabattcode (z.B. aus Newsletter-Link) beim Erreichen des Checkouts automatisch pruefen.
-  if (step === 4 && state.currentStep !== 4 && state.discountCode && !state.discount && discountFeatureEnabled()) {
+  // free_module-Codes NICHT als Euro-Rabatt anwenden -> Belohnung ist bereits als Gratis-Modul sichtbar.
+  if (step === 4 && state.currentStep !== 4 && state.discountCode && !state.discount && discountFeatureEnabled()
+      && !(state.discountPreview && state.discountPreview.discountType === 'free_module')) {
     applyRecoveredDiscountCode();
   }
   state.currentStep = step;
@@ -4899,6 +4907,91 @@ function prefillDiscountFromUrl() {
   var input = document.getElementById('discountCode');
   if (input) input.value = code;
   renderDiscountState('Rabattcode „' + code + '" wird automatisch berücksichtigt.', '');
+  fetchDiscountPreview(code);
+}
+
+// Leichte Vorschau des Codes holen (Typ/Wert/Gratis-Module), um Belohnung schon waehrend der Buchung
+// zu zeigen. Volle Pruefung bleibt im Checkout.
+function fetchDiscountPreview(code) {
+  if (!code || !discountFeatureEnabled()) return;
+  fetch(GAS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'previewDiscountCode', payload: { code: code } })
+  })
+  .then(function(r) { return r.ok ? r.json() : null; })
+  .then(function(res) {
+    if (!res || !res.success || !res.valid || !res.preview) return;
+    if (String(state.discountCode || '').toUpperCase() !== String(res.preview.code || '').toUpperCase()) return;
+    state.discountPreview = res.preview;
+    if (res.preview.discountType === 'free_module') applyDiscountFreeModules();
+    renderDiscountPreviewBanner();
+    renderServiceList();
+    updateSummary();
+  })
+  .catch(function() {});
+}
+
+// Gratis-Module aus einer aktiven Code-Vorschau (Typ free_module) -> Map moduleId -> Label.
+function discountRewardMap() {
+  var map = {};
+  var p = state.discountPreview;
+  if (p && p.discountType === 'free_module' && Array.isArray(p.freeModuleIds)) {
+    var label = 'Rabattcode ' + (p.code || '');
+    p.freeModuleIds.forEach(function(id) { if (findService(id)) map[id] = label; });
+  }
+  return map;
+}
+
+// Belohnungs-Module gesamt = Aktionen (Promotions) + Gratis-Module aus Code-Vorschau.
+function activeRewardModules() {
+  var map = activePromoRewards();
+  var dm = discountRewardMap();
+  Object.keys(dm).forEach(function(id) { if (!map[id]) map[id] = dm[id]; });
+  return map;
+}
+
+// Gratis-Module der Code-Vorschau automatisch anwaehlen (einmalig; manuelles Abwaehlen bleibt moeglich).
+function applyDiscountFreeModules() {
+  var ids = Object.keys(discountRewardMap());
+  if (!ids.length) return;
+  var selectedIds = {};
+  Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
+  var changed = false;
+  ids.forEach(function(id) { if (!selectedIds[id]) { selectedIds[id] = true; changed = true; } });
+  if (!changed) return;
+  var packageMaps = currentPackageMaps();
+  if (packageMaps.pkg) packageChargeableIds(packageMaps.pkg).forEach(function(mid) { if (findService(mid)) selectedIds[mid] = true; });
+  normalizeSelectedIds(selectedIds, [], ids[0]);
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, !!packageMaps.pkg, meta.covered, meta.upgrades);
+}
+
+// Info-Banner (Sidebar) fuer einen per Link aktivierten Rabattcode.
+function renderDiscountPreviewBanner() {
+  var el = document.getElementById('sumDiscountBanner');
+  if (!el) return;
+  var p = state.discountPreview;
+  if (!p || !discountFeatureEnabled()) { el.hidden = true; el.innerHTML = ''; return; }
+  var text;
+  if (p.discountType === 'free_module') {
+    var names = (p.freeModuleIds || []).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
+    text = names.length ? (names.join(', ') + ' gratis dazu') : 'Gratis-Leistung inklusive';
+  } else if (p.discountType === 'percent') {
+    text = fmtPercent(p.discountValue) + ' Rabatt wird im Angebot berücksichtigt';
+  } else if (p.discountType === 'fixed_per_guest') {
+    text = fmtEur(p.discountValue) + ' /Gast Rabatt im Angebot';
+  } else {
+    text = fmtEur(p.discountValue) + ' Rabatt im Angebot';
+  }
+  el.innerHTML = '<span class="sdb-code">🎟️ ' + esc(p.code) + '</span><span class="sdb-text">' + esc(text) + '</span>';
+  el.hidden = false;
+}
+
+function fmtPercent(value) {
+  var n = Number(value) || 0;
+  var s = (Math.round(n * 100) / 100).toString().replace('.', ',');
+  return s + ' %';
 }
 
 function applyRecoveredDraftPayload(payload) {
