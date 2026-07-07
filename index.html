@@ -4554,6 +4554,10 @@ function goStep(step) {
     renderPromoBanner();
     updateSummary();
   }
+  // Vorbefuellten Rabattcode (z.B. aus Newsletter-Link) beim Erreichen des Checkouts automatisch pruefen.
+  if (step === 4 && state.currentStep !== 4 && state.discountCode && !state.discount && discountFeatureEnabled()) {
+    applyRecoveredDiscountCode();
+  }
   state.currentStep = step;
   document.querySelectorAll('.panel').forEach(function(panel) { panel.classList.remove('active'); });
   document.getElementById('panel' + step).classList.add('active');
@@ -4883,6 +4887,20 @@ function getUrlParam(name) {
   catch (err) { return ''; }
 }
 
+// Rabattcode aus der URL vorbefuellen (z.B. Newsletter-Button ...?code=SOMMER10). Wird beim Erreichen
+// des Checkouts (Schritt 4) automatisch geprueft/angewendet; spaetestens beim Absenden serverseitig.
+function prefillDiscountFromUrl() {
+  if (!discountFeatureEnabled()) return;
+  if (state.discountCode) return; // bereits gesetzt (z.B. Recovery-Draft) -> nicht ueberschreiben
+  var raw = getUrlParam('code') || getUrlParam('rabatt') || getUrlParam('discount');
+  var code = String(raw || '').trim().toUpperCase().replace(/\s+/g, '').slice(0, 40);
+  if (!code) return;
+  state.discountCode = code;
+  var input = document.getElementById('discountCode');
+  if (input) input.value = code;
+  renderDiscountState('Rabattcode „' + code + '" wird automatisch berücksichtigt.', '');
+}
+
 function applyRecoveredDraftPayload(payload) {
   if (!payload) return;
   state.draftId = payload.draftId || state.draftId || '';
@@ -5201,6 +5219,7 @@ async function bootPublicPage() {
     buildStartTimeOptions();
     updateDurationOptions();
     await maybeResumeAbandonedDraft();
+    prefillDiscountFromUrl();
     updateAvailabilityNote();
     renderCalendar();
     applyMaintenanceMode();
