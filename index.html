@@ -643,6 +643,8 @@ section{padding:120px 56px;}
 .pkg-sel-remove:hover{border-color:var(--dark);color:var(--dark);}
 .pkg-more-link{display:inline-block;margin:12px 0 0;background:none;border:none;padding:2px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--gold);cursor:pointer;text-transform:uppercase;}
 .pkg-more-link:hover{text-decoration:underline;}
+.pkg-sel-locked{flex:0 0 auto;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--gold);white-space:nowrap;}
+.pkg-mandatory-note{margin:10px 0 0;font-family:var(--serif);font-style:italic;font-size:12px;color:var(--stone);line-height:1.4;}
 .pkg-card{
   border:1px solid var(--border);border-radius:var(--radius);
   padding:18px;cursor:pointer;transition:all .2s;position:relative;background:#fff;
@@ -3121,7 +3123,11 @@ function normalizePackages(list) {
       startTimeMax: normalizeTimeValue(pkg.startTimeMax),
       active: pkg.active !== false,
       allowedSpaceIds: Array.isArray(pkg.allowedSpaceIds) ? pkg.allowedSpaceIds.map(String) : [],
-      preselected: pkg.preselected === true
+      preselected: pkg.preselected === true,
+      mandatory: pkg.mandatory === true,
+      mandatoryStartTime: normalizeTimeValue(pkg.mandatoryStartTime),
+      mandatoryEndTime: normalizeTimeValue(pkg.mandatoryEndTime),
+      mandatorySpaceIds: Array.isArray(pkg.mandatorySpaceIds) ? pkg.mandatorySpaceIds.map(String) : []
     };
   }).filter(function(pkg) { return pkg.id; });
 }
@@ -3255,6 +3261,21 @@ function packageRuleMessages(pkg) {
 
 function isPackageBookable(pkg) {
   return packageRuleMessages(pkg).length === 0;
+}
+
+// Ist das Paket im aktuell gewählten Raum + Startzeit verpflichtend (nicht abwählbar)?
+// Raum UND Zeit müssen passen; leeres Feld = gilt für alle.
+function packageIsMandatoryNow(pkg) {
+  if (!pkg || pkg.mandatory !== true) return false;
+  var rooms = pkg.mandatorySpaceIds || [];
+  if (rooms.length && rooms.indexOf(effectiveSpaceId()) === -1) return false;
+  if (pkg.mandatoryStartTime || pkg.mandatoryEndTime) {
+    if (!state.selectedTime) return false; // Zeitfenster gesetzt, aber noch keine Zeit -> noch nicht gesperrt
+    var start = toMinutes(state.selectedTime);
+    if (pkg.mandatoryStartTime && start < toMinutes(pkg.mandatoryStartTime)) return false;
+    if (pkg.mandatoryEndTime && start > toMinutes(pkg.mandatoryEndTime)) return false;
+  }
+  return true;
 }
 
 function currentPackage() {
@@ -3614,6 +3635,27 @@ function applyPreselectedPackage() {
   return true;
 }
 
+// Erzwingt ein im aktuellen Raum/Zeit verpflichtendes Paket — auch wenn der Kunde vorher abgewählt
+// hat (verpflichtend überschreibt userTouchedPackage). Läuft vor applyPreselectedPackage.
+function enforceMandatoryPackage() {
+  var current = currentPackage();
+  if (current && packageIsMandatoryNow(current)) return true; // schon gesetzt & gesperrt
+  var mand = selectablePackages().filter(function(p) { return packageIsMandatoryNow(p); })[0];
+  if (!mand) return false;
+  if (current && current.id === mand.id) return true;
+  var selectedIds = {};
+  packageChargeableIds(mand).forEach(function(moduleId) {
+    if (findService(moduleId)) selectedIds[moduleId] = true;
+  });
+  lastRuleMessages = [];
+  normalizeSelectedIds(selectedIds, lastRuleMessages, packageChargeableIds(mand)[0] || mand.id);
+  state.selectedPackage = mand.id;
+  var meta = buildSelectionMeta(selectedIds);
+  commitServiceSelection(selectedIds, true, meta.covered, meta.upgrades);
+  pkgOpen = false;
+  return true;
+}
+
 function renderPackages() {
   var ui = currentUi();
   var selectedOccasion = state.occasion || '';
@@ -3644,28 +3686,34 @@ function renderPackages() {
 
   if (pkg) {
     // Kompakte Ansicht: nur das gewählte Paket + Abwählen; weitere hinter "Anderes Paket wählen".
+    // Verpflichtend (packageIsMandatoryNow): komplett fix -> kein Abwählen, kein Wechsel.
     if (header) header.style.display = 'none';
+    var mandatoryNow = packageIsMandatoryNow(pkg);
     var ppEstimate = state.guests > 0 ? Math.round(packageEstimate(pkg) / state.guests * 100) / 100 : 0;
     var estimate = replaceTokens(ui.packageEstimate, { total: fmtEur(ppEstimate), guests: state.guests });
-    var compact = '<div class="pkg-compact-wrap">' +
-      '<div class="pkg-selected-compact">' +
+    var topRow = '<div class="pkg-selected-compact">' +
         '<div class="pkg-sel-info">' +
           '<span class="pkg-sel-check">✓</span>' +
           '<span class="pkg-sel-name">' + esc(pkg.name) + '</span>' +
           '<span class="pkg-sel-price">' + esc(estimate) + '</span>' +
         '</div>' +
-        '<button type="button" class="pkg-sel-remove" data-package-remove="' + esc(pkg.id) + '">Abwählen</button>' +
-      '</div>' +
-      '<button type="button" class="pkg-more-link" id="pkgMoreLink">' + (pkgOpen ? '▴ Pakete ausblenden' : '▾ Anderes Paket wählen') + '</button>' +
-      '<div class="pkg-full-grid" style="display:' + (pkgOpen ? 'block' : 'none') + '">' + buildPackageGridHtml(filtered) + '</div>' +
+        (mandatoryNow
+          ? '<span class="pkg-sel-locked">🔒 fest enthalten</span>'
+          : '<button type="button" class="pkg-sel-remove" data-package-remove="' + esc(pkg.id) + '">Abwählen</button>') +
       '</div>';
-    gridEl.innerHTML = compact;
+    var below = mandatoryNow
+      ? '<div class="pkg-mandatory-note">Für den gewählten Zeitraum/Raum ist dieses Paket fest enthalten.</div>'
+      : '<button type="button" class="pkg-more-link" id="pkgMoreLink">' + (pkgOpen ? '▴ Pakete ausblenden' : '▾ Anderes Paket wählen') + '</button>' +
+        '<div class="pkg-full-grid" style="display:' + (pkgOpen ? 'block' : 'none') + '">' + buildPackageGridHtml(filtered) + '</div>';
+    gridEl.innerHTML = '<div class="pkg-compact-wrap">' + topRow + below + '</div>';
     gridEl.style.display = 'block';
-    var removeBtn = gridEl.querySelector('[data-package-remove]');
-    if (removeBtn) removeBtn.addEventListener('click', function() { selectPackage(removeBtn.getAttribute('data-package-remove')); });
-    var moreLink = document.getElementById('pkgMoreLink');
-    if (moreLink) moreLink.addEventListener('click', togglePkgOpen);
-    wirePackageGrid(gridEl);
+    if (!mandatoryNow) {
+      var removeBtn = gridEl.querySelector('[data-package-remove]');
+      if (removeBtn) removeBtn.addEventListener('click', function() { selectPackage(removeBtn.getAttribute('data-package-remove')); });
+      var moreLink = document.getElementById('pkgMoreLink');
+      if (moreLink) moreLink.addEventListener('click', togglePkgOpen);
+      wirePackageGrid(gridEl);
+    }
     return;
   }
 
@@ -3684,6 +3732,9 @@ function togglePkgOpen() {
 }
 
 function selectPackage(pkgId) {
+  // Verpflichtendes Paket im aktuellen Raum/Zeit ist komplett fix: kein Abwählen, kein Wechsel.
+  var currentSel = currentPackage();
+  if (currentSel && packageIsMandatoryNow(currentSel)) return;
   state.userTouchedPackage = true; // echte Kunden-Aktion -> keine Auto-Vorauswahl mehr
   if (state.selectedPackage === pkgId) {
     var selectedIds = {};
@@ -4553,6 +4604,7 @@ function goStep(step) {
   if (step === 3 && state.currentStep !== 3) {
     activeServiceCategory = '';
     applyMonthRequiredSelections();
+    enforceMandatoryPackage();
     applyPreselectedPackage();
     renderMonthNotice();
     renderPackages();
