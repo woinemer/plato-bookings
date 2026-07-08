@@ -1693,6 +1693,7 @@ var state = {
   discountCode: '',
   discount: null,
   discountPreview: null,
+  discountAutoApplied: false,
   newsletter: true,
   services: {},
   selectedSpaceId: '',
@@ -4550,8 +4551,15 @@ function updateSummary() {
       Math.abs(Number(state.discount.totalBeforeDiscount || 0) - total) > 0.01 &&
       Math.abs(Number(state.discount.totalAfterDiscount || 0) - total) > 0.01) {
     state.discount = null;
-    state.discountCode = '';
-    renderDiscountState('Bitte wende den Rabattcode nach Änderungen erneut an.', 'error');
+    if (state.discountAutoApplied && state.discountCode) {
+      // Per Link aktivierter Coupon: automatisch (entprellt) neu validieren statt "erneut anwenden"
+      // zu verlangen -> der Rabatt bleibt ueber Aenderungen hinweg aktiv.
+      renderDiscountState('Rabattcode wird aktualisiert...', '');
+      scheduleDiscountRevalidation();
+    } else {
+      state.discountCode = '';
+      renderDiscountState('Bitte wende den Rabattcode nach Änderungen erneut an.', 'error');
+    }
   }
   if (state.discount && state.discount.amount > 0) {
     var discountPp = Number(state.discount.amountPerGuest || (state.guests > 0 ? state.discount.amount / state.guests : 0));
@@ -4563,6 +4571,7 @@ function updateSummary() {
   var perPerson = state.guests > 0 && total > 0 ? Math.round(total / state.guests * 100) / 100 : 0;
   document.getElementById('sum-total').textContent = perPerson > 0 ? fmtEur(perPerson) + ui.perGuest : '– €/Gast';
   renderPromoBanner();
+  renderDiscountPreviewBanner(); // Coupon-Banner nach Re-Renders (Schrittwechsel/Polling) sichtbar halten
   scheduleAbandonedDraftSave();
 }
 
@@ -4606,15 +4615,20 @@ function goStep(step) {
     applyMonthRequiredSelections();
     enforceMandatoryPackage();
     applyPreselectedPackage();
+    // Coupon-Vorauswahl (Gratis-/Ziel-Modul) nach dem Paket-Setup erneut sicherstellen: enforceMandatory-
+    // Package/applyPreselectedPackage bauen state.services aus den Paket-Modulen neu auf und wuerden ein
+    // per Link vorausgewaehltes Coupon-Modul sonst wieder entfernen.
+    applyDiscountCodeSelections(state.discountPreview);
     renderMonthNotice();
     renderPackages();
     renderServiceList();
     renderPromoBanner();
     updateSummary();
   }
-  // Vorbefuellten Rabattcode (z.B. aus Newsletter-Link) beim Erreichen des Checkouts automatisch pruefen.
+  // Vorbefuellten Rabattcode (z.B. aus Newsletter-Link) schon beim Erreichen der Leistungen (Schritt 3)
+  // pruefen/anwenden, nicht erst im Checkout -> der Euro-Rabatt ist waehrend der Auswahl sichtbar.
   // free_module-Codes NICHT als Euro-Rabatt anwenden -> Belohnung ist bereits als Gratis-Modul sichtbar.
-  if (step === 4 && state.currentStep !== 4 && state.discountCode && !state.discount && discountFeatureEnabled()
+  if ((step === 3 || step === 4) && state.currentStep !== step && state.discountCode && !state.discount && discountFeatureEnabled()
       && !(state.discountPreview && state.discountPreview.discountType === 'free_module')) {
     applyRecoveredDiscountCode();
   }
@@ -4771,8 +4785,11 @@ function applyDiscountCode() {
   if (state.discount) {
     state.discount = null;
     state.discountCode = '';
+    state.discountAutoApplied = false; // manuell entfernt -> nicht automatisch reaktivieren
+    state.discountPreview = null;
     if (input) input.value = '';
     renderDiscountState('', '');
+    renderDiscountPreviewBanner();
     updateSummary();
     return;
   }
@@ -4793,6 +4810,7 @@ function applyDiscountCode() {
     return;
   }
   state.discountCode = code;
+  state.discountAutoApplied = false; // manuell eingegeben -> bei Aenderungen "erneut anwenden" statt Auto-Revalidierung
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'Prüfen...';
@@ -4874,6 +4892,7 @@ function applyRecoveredDiscountCode() {
     if (result && result.success && result.valid && result.discount) {
       state.discount = result.discount;
       state.discountCode = result.discount.code || code;
+      discountRevalidateAttempts = 0; // erfolgreiche Validierung -> Zaehler zuruecksetzen
       if (input) input.value = state.discountCode;
       renderDiscountState('', 'success');
       trackConversionEvent('discount_applied_from_recovery', { code: state.discountCode, amount: state.discount.amount || 0 });
@@ -4888,6 +4907,25 @@ function applyRecoveredDiscountCode() {
     renderDiscountState('Der Rabattcode kann gerade nicht geprüft werden.', 'error');
     updateSummary();
   });
+}
+
+// Per Link aktivierte Coupons nach einer Auswahl-Aenderung automatisch neu validieren (entprellt),
+// damit der Euro-Rabatt (percent/fixed/per_guest) ohne manuelles "Anwenden" aktuell bleibt.
+var discountRevalidateTimer = null;
+var discountRevalidateAttempts = 0;
+function scheduleDiscountRevalidation() {
+  clearTimeout(discountRevalidateTimer);
+  discountRevalidateTimer = setTimeout(function() {
+    if (!state.discountAutoApplied || !state.discountCode || state.discount || !discountFeatureEnabled()) return;
+    if (state.discountPreview && state.discountPreview.discountType === 'free_module') return; // Gratis-Modul: kein Euro-Rabatt
+    if (discountRevalidateAttempts >= 4) { // Sicherung gegen Endlosschleife bei dauerhaftem Mismatch
+      state.discountAutoApplied = false;
+      renderDiscountState('Bitte wende den Rabattcode nach Änderungen erneut an.', 'error');
+      return;
+    }
+    discountRevalidateAttempts++;
+    applyRecoveredDiscountCode();
+  }, 500);
 }
 
 function ensureDraftId() {
@@ -4974,6 +5012,7 @@ function prefillDiscountFromUrl() {
   var code = String(raw || '').trim().toUpperCase().replace(/\s+/g, '').slice(0, 40);
   if (!code) return;
   state.discountCode = code;
+  state.discountAutoApplied = true; // per Link aktiviert -> von Anfang an aktiv, auto-revalidieren
   var input = document.getElementById('discountCode');
   if (input) input.value = code;
   renderDiscountState('Rabattcode „' + code + '" wird automatisch berücksichtigt.', '');
@@ -5538,10 +5577,38 @@ function notifyParentScrollTop() {
   try { parent.postMessage({ type: 'platoScrollTop' }, parentMessageTargetOrigin()); } catch (e) {}
 }
 
-window.addEventListener('load', notifyHeight);
+// Signalisiert der Einbettungs-Seite, dass das Tool bereit ist (damit sie einen Coupon-Code senden kann).
+function notifyParentReady() {
+  if (!isInIframe()) return;
+  try { parent.postMessage({ type: 'platoReady' }, parentMessageTargetOrigin()); } catch (e) {}
+}
+
+// Uebernimmt einen von der Einbettungs-Seite (Newsletter-Link ?code=...) gesendeten Coupon-Code und
+// aktiviert ihn sofort (Vorschau + Ziel-/Gratis-Modul vorwaehlen) — genau wie ein Code in der eigenen URL.
+function applyCouponFromParent(rawCode) {
+  if (!discountFeatureEnabled()) return;
+  var code = String(rawCode || '').trim().toUpperCase().replace(/\s+/g, '').slice(0, 40);
+  if (!code || state.discountCode === code) return;
+  state.discountCode = code;
+  state.discountAutoApplied = true;
+  var input = document.getElementById('discountCode');
+  if (input) input.value = code;
+  renderDiscountState('Rabattcode „' + code + '" wird automatisch berücksichtigt.', '');
+  fetchDiscountPreview(code);
+}
+
+window.addEventListener('message', function(event) {
+  var data = event && event.data;
+  if (!data || typeof data !== 'object') return;
+  if (data.type === 'platoApplyCoupon' && data.code) applyCouponFromParent(data.code);
+});
+
+window.addEventListener('load', function() { notifyHeight(); notifyParentReady(); });
 
 /*
-  IFRAME EMBED SNIPPET — paste this on your website:
+  IFRAME EMBED SNIPPET — auf deiner Website (z.B. plato-eventlocation.de) einfügen.
+  Reicht einen Coupon-Code aus der Seiten-URL (?code=... vom Newsletter-Link) an das eingebettete
+  Tool weiter, sobald es bereit ist -> der Coupon ist von Anfang an aktiv (Gratis-Modul vorgewählt).
 
   <iframe
     id="platoFrame"
@@ -5550,17 +5617,24 @@ window.addEventListener('load', notifyHeight);
     loading="lazy">
   </iframe>
   <script>
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'platoHeight') {
-      var f = document.getElementById('platoFrame');
-      if (f) f.style.height = e.data.height + 'px';
-    }
-    if (e.data && e.data.type === 'platoScrollTop') {
-      var f = document.getElementById('platoFrame');
-      if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
+  (function() {
+    var frame = document.getElementById('platoFrame');
+    var params = new URLSearchParams(location.search);
+    var couponCode = params.get('code') || params.get('rabatt') || params.get('discount') || '';
+    window.addEventListener('message', function(e) {
+      if (!e.data) return;
+      if (e.data.type === 'platoHeight' && frame) frame.style.height = e.data.height + 'px';
+      if (e.data.type === 'platoScrollTop' && frame) frame.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Sobald das Tool gebootet hat, den Coupon-Code senden.
+      if (e.data.type === 'platoReady' && couponCode && frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({ type: 'platoApplyCoupon', code: couponCode }, '*');
+      }
+    });
+  })();
   <\/script>
+
+  Alternative (ohne Script, wenn das Tool die Coupon-Weitergabe nicht per Nachricht bekommt):
+  den Code direkt an die iframe-src anhängen, z.B. src="https://maxwoinemer.github.io/plato-bookings/?code=PLATO98269".
 */
 </script>
 </body>
