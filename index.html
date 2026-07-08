@@ -1694,6 +1694,8 @@ var state = {
   discount: null,
   discountPreview: null,
   discountAutoApplied: false,
+  discountModulesRemoved: {},
+  lastDiscountKey: '',
   newsletter: true,
   services: {},
   selectedSpaceId: '',
@@ -3797,8 +3799,11 @@ function toggleService(id) {
   });
   lastRuleMessages = [];
   if (selectedIds[id]) {
+    // Coupon-Ziel-Modul bewusst abgewaehlt -> merken, damit die Auto-Vorauswahl es nicht wieder hinzufuegt.
+    if (discountTargetModuleIds(state.discountPreview).indexOf(id) !== -1) state.discountModulesRemoved[id] = true;
     removeServiceAndDependents(selectedIds, id, lastRuleMessages);
   } else {
+    if (state.discountModulesRemoved[id]) delete state.discountModulesRemoved[id]; // wieder hinzugefuegt -> Opt-out aufheben
     selectedServicesInOrder().forEach(function(selected) {
       var selectedBase = findService(selected.id);
       if (!selectedBase) return;
@@ -4552,10 +4557,16 @@ function updateSummary() {
       Math.abs(Number(state.discount.totalAfterDiscount || 0) - total) > 0.01) {
     state.discount = null;
     if (state.discountAutoApplied && state.discountCode) {
-      // Per Link aktivierter Coupon: automatisch (entprellt) neu validieren statt "erneut anwenden"
-      // zu verlangen -> der Rabatt bleibt ueber Aenderungen hinweg aktiv.
-      renderDiscountState('Rabattcode wird aktualisiert...', '');
-      scheduleDiscountRevalidation();
+      // Per Link aktivierter Coupon: automatisch neu validieren -- aber nur EINMAL pro Warenkorb-Zustand
+      // (Signatur-Sperre), sonst Endlosschleife. Bei unveraenderter Signatur stattdessen stabile Notiz.
+      var staleKey = discountStateKey();
+      if (staleKey !== state.lastDiscountKey) {
+        state.lastDiscountKey = staleKey;
+        renderDiscountState('Rabattcode wird aktualisiert...', '');
+        scheduleDiscountRevalidation();
+      } else {
+        renderDiscountState(discountRemovedNote() || 'Rabattcode für diese Auswahl nicht anwendbar.', 'error');
+      }
     } else {
       state.discountCode = '';
       renderDiscountState('Bitte wende den Rabattcode nach Änderungen erneut an.', 'error');
@@ -4787,6 +4798,8 @@ function applyDiscountCode() {
     state.discountCode = '';
     state.discountAutoApplied = false; // manuell entfernt -> nicht automatisch reaktivieren
     state.discountPreview = null;
+    state.discountModulesRemoved = {};
+    state.lastDiscountKey = '';
     if (input) input.value = '';
     renderDiscountState('', '');
     renderDiscountPreviewBanner();
@@ -4811,6 +4824,8 @@ function applyDiscountCode() {
   }
   state.discountCode = code;
   state.discountAutoApplied = false; // manuell eingegeben -> bei Aenderungen "erneut anwenden" statt Auto-Revalidierung
+  state.discountModulesRemoved = {};
+  state.lastDiscountKey = '';
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'Prüfen...';
@@ -4833,6 +4848,7 @@ function applyDiscountCode() {
 }
 
 function validateDiscountNow(code, input, btn) {
+  state.lastDiscountKey = discountStateKey(); // Warenkorb-Signatur des Versuchs merken (Loop-Sperre)
   var payload = buildSubmitPayload();
   payload.discountCode = code;
   fetch(GAS_API_URL, {
@@ -4875,55 +4891,74 @@ function applyRecoveredDiscountCode() {
   if (!code || !state.selectedDate || !state.selectedTime || !state.duration || !state.occasion) return Promise.resolve();
   state.discountCode = code;
   if (input) input.value = code;
-  applyDiscountCodeSelections(state.discountPreview); // Ziel-Modul/-Paket sicherstellen, dann validieren
-  renderDiscountState('Rabattcode wird geprüft...', '');
-  var payload = buildSubmitPayload();
-  payload.discountCode = code;
-  return fetch(GAS_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'validateDiscountCode', payload: payload })
-  })
-  .then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
-  .then(function(result) {
-    if (result && result.success && result.valid && result.discount) {
-      state.discount = result.discount;
-      state.discountCode = result.discount.code || code;
-      discountRevalidateAttempts = 0; // erfolgreiche Validierung -> Zaehler zuruecksetzen
-      if (input) input.value = state.discountCode;
-      renderDiscountState('', 'success');
-      trackConversionEvent('discount_applied_from_recovery', { code: state.discountCode, amount: state.discount.amount || 0 });
-    } else {
+  // Vorschau sicherstellen (Ziel-/Gratis-Module bekannt), erst dann in den Warenkorb aufnehmen + validieren.
+  var ensurePreview = (state.discountPreview && String(state.discountPreview.code || '').toUpperCase() === code)
+    ? Promise.resolve()
+    : fetchDiscountPreview(code);
+  return ensurePreview.then(function() {
+    // free_module: kein Euro-Rabatt (bereits als Gratis-Modul sichtbar) -> nicht serverseitig validieren.
+    if (state.discountPreview && state.discountPreview.discountType === 'free_module') { updateSummary(); return; }
+    applyDiscountCodeSelections(state.discountPreview); // Ziel-Modul real in state.services aufnehmen
+    state.lastDiscountKey = discountStateKey();          // Versuch fuer diesen Warenkorb markieren (Loop-Sperre)
+    renderDiscountState('Rabattcode wird geprüft...', '');
+    var payload = buildSubmitPayload();
+    payload.discountCode = code;
+    return fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'validateDiscountCode', payload: payload })
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(result) {
+      if (result && result.success && result.valid && result.discount) {
+        state.discount = result.discount;
+        state.discountCode = result.discount.code || code;
+        if (input) input.value = state.discountCode;
+        renderDiscountState('', 'success');
+        trackConversionEvent('discount_applied_from_recovery', { code: state.discountCode, amount: state.discount.amount || 0 });
+      } else {
+        state.discount = null;
+        renderDiscountState(discountRemovedNote() || (result && result.error) || 'Der Rabattcode kann für diese Anfrage nicht angewendet werden.', 'error');
+      }
+      updateSummary();
+    })
+    .catch(function() {
       state.discount = null;
-      renderDiscountState((result && result.error) || 'Der Rabattcode kann für diese Anfrage nicht angewendet werden.', 'error');
-    }
-    updateSummary();
-  })
-  .catch(function() {
-    state.discount = null;
-    renderDiscountState('Der Rabattcode kann gerade nicht geprüft werden.', 'error');
-    updateSummary();
+      renderDiscountState('Der Rabattcode kann gerade nicht geprüft werden.', 'error');
+      updateSummary();
+    });
   });
 }
 
-// Per Link aktivierte Coupons nach einer Auswahl-Aenderung automatisch neu validieren (entprellt),
-// damit der Euro-Rabatt (percent/fixed/per_guest) ohne manuelles "Anwenden" aktuell bleibt.
+// Signatur des aktuellen Buchungszustands -> Grundlage der Schleifen-Sperre: pro Warenkorb-Zustand
+// wird ein Code hoechstens einmal automatisch revalidiert.
+function discountStateKey() {
+  return [
+    Object.keys(state.services || {}).sort().join(','),
+    state.guests, state.selectedPackage, state.selectedDate,
+    state.selectedTime, state.duration, state.occasion
+  ].join('|');
+}
+
+// Freundlicher Hinweis, wenn der Code ein Modul adressiert, das der Kunde bewusst abgewaehlt hat.
+function discountRemovedNote() {
+  var removed = state.discountModulesRemoved || {};
+  var names = discountTargetModuleIds(state.discountPreview).filter(function(id) { return removed[id]; })
+    .map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
+  return names.length ? ('Rabattcode gilt für ' + names.join(', ') + ' — füge es hinzu, um zu sparen.') : '';
+}
+
+// Per Link aktivierte Coupons nach einer Auswahl-Aenderung automatisch neu validieren (entprellt).
+// Der eigentliche Schleifenschutz ist die Signatur-Sperre (state.lastDiscountKey) im updateSummary-Guard.
 var discountRevalidateTimer = null;
-var discountRevalidateAttempts = 0;
 function scheduleDiscountRevalidation() {
   clearTimeout(discountRevalidateTimer);
   discountRevalidateTimer = setTimeout(function() {
     if (!state.discountAutoApplied || !state.discountCode || state.discount || !discountFeatureEnabled()) return;
     if (state.discountPreview && state.discountPreview.discountType === 'free_module') return; // Gratis-Modul: kein Euro-Rabatt
-    if (discountRevalidateAttempts >= 4) { // Sicherung gegen Endlosschleife bei dauerhaftem Mismatch
-      state.discountAutoApplied = false;
-      renderDiscountState('Bitte wende den Rabattcode nach Änderungen erneut an.', 'error');
-      return;
-    }
-    discountRevalidateAttempts++;
     applyRecoveredDiscountCode();
   }, 500);
 }
@@ -5013,6 +5048,8 @@ function prefillDiscountFromUrl() {
   if (!code) return;
   state.discountCode = code;
   state.discountAutoApplied = true; // per Link aktiviert -> von Anfang an aktiv, auto-revalidieren
+  state.discountModulesRemoved = {};
+  state.lastDiscountKey = '';
   var input = document.getElementById('discountCode');
   if (input) input.value = code;
   renderDiscountState('Rabattcode „' + code + '" wird automatisch berücksichtigt.', '');
@@ -5090,7 +5127,10 @@ function applyDiscountCodeSelections(p) {
   Object.keys(state.services).forEach(function(id) { selectedIds[id] = true; });
   var changed = false;
   if (pkgId && state.selectedPackage !== pkgId) { state.selectedPackage = pkgId; changed = true; }
-  modIds.forEach(function(id) { if (!selectedIds[id]) { selectedIds[id] = true; changed = true; } });
+  modIds.forEach(function(id) {
+    if (state.discountModulesRemoved && state.discountModulesRemoved[id]) return; // vom Kunden abgewaehlt -> nicht wieder hinzufuegen
+    if (!selectedIds[id]) { selectedIds[id] = true; changed = true; }
+  });
   if (!changed) return;
   var pkg = currentPackage();
   if (pkg) packageChargeableIds(pkg).forEach(function(mid) { if (findService(mid)) selectedIds[mid] = true; });
@@ -5591,6 +5631,8 @@ function applyCouponFromParent(rawCode) {
   if (!code || state.discountCode === code) return;
   state.discountCode = code;
   state.discountAutoApplied = true;
+  state.discountModulesRemoved = {};
+  state.lastDiscountKey = '';
   var input = document.getElementById('discountCode');
   if (input) input.value = code;
   renderDiscountState('Rabattcode „' + code + '" wird automatisch berücksichtigt.', '');
