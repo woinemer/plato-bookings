@@ -1695,6 +1695,7 @@ var state = {
   discountPreview: null,
   discountAutoApplied: false,
   discountModulesRemoved: {},
+  discountAutoAddTried: false,
   lastDiscountKey: '',
   newsletter: true,
   services: {},
@@ -4799,6 +4800,7 @@ function applyDiscountCode() {
     state.discountAutoApplied = false; // manuell entfernt -> nicht automatisch reaktivieren
     state.discountPreview = null;
     state.discountModulesRemoved = {};
+    state.discountAutoAddTried = false;
     state.lastDiscountKey = '';
     if (input) input.value = '';
     renderDiscountState('', '');
@@ -4825,6 +4827,7 @@ function applyDiscountCode() {
   state.discountCode = code;
   state.discountAutoApplied = false; // manuell eingegeben -> bei Aenderungen "erneut anwenden" statt Auto-Revalidierung
   state.discountModulesRemoved = {};
+  state.discountAutoAddTried = false;
   state.lastDiscountKey = '';
   if (btn) {
     btn.disabled = true;
@@ -4869,12 +4872,21 @@ function validateDiscountNow(code, input, btn) {
       renderDiscountState('', 'success');
       trackConversionEvent('discount_applied', { code: state.discountCode, amount: state.discount.amount || 0 });
       updateSummary();
-    } else {
-      state.discount = null;
-      state.discountCode = '';
-      renderDiscountState((result && result.error) || 'Der Rabattcode kann für diese Anfrage nicht angewendet werden.', 'error');
-      updateSummary();
+      return;
     }
+    // Ziel-Modul/-Paket noch nicht im Warenkorb? -> aus der Validierungs-Antwort automatisch hinzufuegen
+    // und GENAU EINMAL erneut pruefen (kein Loop dank discountAutoAddTried + Signatur-Sperre).
+    if (result && result.target && !state.discountAutoAddTried && applyDiscountCodeSelections(result.target)) {
+      state.discountAutoAddTried = true;
+      renderServiceList();
+      if (btn) { btn.disabled = true; btn.textContent = 'Prüfen...'; }
+      validateDiscountNow(code, input, btn);
+      return;
+    }
+    state.discount = null;
+    state.discountCode = '';
+    renderDiscountState(discountRemovedNote() || (result && result.error) || 'Der Rabattcode kann für diese Anfrage nicht angewendet werden.', 'error');
+    updateSummary();
   })
   .catch(function() {
     if (btn) btn.disabled = false;
@@ -4919,10 +4931,18 @@ function applyRecoveredDiscountCode() {
         if (input) input.value = state.discountCode;
         renderDiscountState('', 'success');
         trackConversionEvent('discount_applied_from_recovery', { code: state.discountCode, amount: state.discount.amount || 0 });
-      } else {
-        state.discount = null;
-        renderDiscountState(discountRemovedNote() || (result && result.error) || 'Der Rabattcode kann für diese Anfrage nicht angewendet werden.', 'error');
+        updateSummary();
+        return;
       }
+      // Ziel-Modul/-Paket fehlt im Warenkorb -> aus der Antwort automatisch hinzufuegen und EINMAL erneut
+      // pruefen (kein Loop dank discountAutoAddTried + Signatur-Sperre).
+      if (result && result.target && !state.discountAutoAddTried && applyDiscountCodeSelections(result.target)) {
+        state.discountAutoAddTried = true;
+        renderServiceList();
+        return applyRecoveredDiscountCode();
+      }
+      state.discount = null;
+      renderDiscountState(discountRemovedNote() || (result && result.error) || 'Der Rabattcode kann für diese Anfrage nicht angewendet werden.', 'error');
       updateSummary();
     })
     .catch(function() {
@@ -5049,6 +5069,7 @@ function prefillDiscountFromUrl() {
   state.discountCode = code;
   state.discountAutoApplied = true; // per Link aktiviert -> von Anfang an aktiv, auto-revalidieren
   state.discountModulesRemoved = {};
+  state.discountAutoAddTried = false;
   state.lastDiscountKey = '';
   var input = document.getElementById('discountCode');
   if (input) input.value = code;
@@ -5120,7 +5141,10 @@ function discountTargetPackageId(p) {
 // Wählt das/die vom Code adressierte(n) Modul(e) + Paket automatisch an (einmalig; bleibt abwählbar).
 function applyDiscountCodeSelections(p) {
   p = p || state.discountPreview;
-  if (!p) return;
+  if (!p) return false;
+  // Ziele auch ohne previewDiscountCode kennen: p (z.B. aus validateDiscountCode) als Vorschau uebernehmen,
+  // damit Banner, Reward-Map und Deselektions-Erkennung die Ziel-Module kennen.
+  if (!state.discountPreview) state.discountPreview = p;
   var pkgId = discountTargetPackageId(p);
   var modIds = discountTargetModuleIds(p);
   var selectedIds = {};
@@ -5131,13 +5155,14 @@ function applyDiscountCodeSelections(p) {
     if (state.discountModulesRemoved && state.discountModulesRemoved[id]) return; // vom Kunden abgewaehlt -> nicht wieder hinzufuegen
     if (!selectedIds[id]) { selectedIds[id] = true; changed = true; }
   });
-  if (!changed) return;
+  if (!changed) return false;
   var pkg = currentPackage();
   if (pkg) packageChargeableIds(pkg).forEach(function(mid) { if (findService(mid)) selectedIds[mid] = true; });
   lastRuleMessages = [];
   normalizeSelectedIds(selectedIds, lastRuleMessages, modIds[0] || (pkg ? (packageChargeableIds(pkg)[0] || '') : ''));
   var meta = buildSelectionMeta(selectedIds);
   commitServiceSelection(selectedIds, !!pkg, meta.covered, meta.upgrades);
+  return true;
 }
 
 // Info-Banner (Sidebar) fuer einen per Link aktivierten Rabattcode.
@@ -5632,6 +5657,7 @@ function applyCouponFromParent(rawCode) {
   state.discountCode = code;
   state.discountAutoApplied = true;
   state.discountModulesRemoved = {};
+  state.discountAutoAddTried = false;
   state.lastDiscountKey = '';
   var input = document.getElementById('discountCode');
   if (input) input.value = code;
