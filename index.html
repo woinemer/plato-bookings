@@ -825,6 +825,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .summary-service .sname{flex:1;}
 .summary-service .sname small{display:block;font-size:12px;opacity:.72;margin-top:2px;letter-spacing:.04em;}
 .summary-service .sval{color:var(--gold);font-family:var(--serif);font-size:11px;white-space:nowrap;}
+.summary-service .sval .disc-strike{text-decoration:line-through;text-decoration-thickness:1px;opacity:.6;margin-right:4px;font-size:10px;}
 .summary-savings{margin-top:12px;padding:10px 12px;border:1px solid rgba(186,159,93,.26);background:rgba(186,159,93,.1);border-radius:6px;color:var(--gold);font-family:var(--serif);font-size:13px;text-align:center;}
 .summary-savings-sub{margin-top:4px;font-family:var(--sans,inherit);font-size:10px;line-height:1.4;color:rgba(217,208,188,.6);}
 .summary-discount{display:flex;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(186,159,93,.16);font-size:12px;color:rgba(217,208,188,.72);}
@@ -4093,6 +4094,7 @@ function stepCategoryBack() {
 
 function renderServiceList() {
   var ui = currentUi();
+  var inlineDisc = couponInlineModuleDiscount(); // {id, amountPerGuest} oder null -> Rabattpreis am Modul
   var list = document.getElementById('serviceList');
   var avail = getActiveServices().filter(isAvailableForSpace).filter(function(service) {
     return monthAllowsModule(service) || !!state.services[service.id];
@@ -4124,6 +4126,16 @@ function renderServiceList() {
     var timeSurcharge = selected && !packageCovered ? serviceTimeSurchargeTotal(service) : 0;
     var regularInfo = selected ? selectedServiceRegularInfo(service, selectedState) : selectedServiceRegularInfo(service, null);
     var regularLabel = selectedState && selectedState.regularValueLabel ? selectedState.regularValueLabel : regularInfo.label;
+    // Coupon-Rabattpreis am Ziel-Modul (durchgestrichenes Original + Rabattpreis).
+    var isInlineDisc = !!(inlineDisc && service.id === inlineDisc.id && !packageCovered && !upgradeFrom && !isPromoReward(service.id) && Number(currentPrice) > 0);
+    var discPriceMarkup = function(subLabel) {
+      var discounted = service.priceType === 'flat'
+        ? Math.max(0, currentPrice - Number(state.discount.amount || 0))
+        : Math.max(0, currentPrice - inlineDisc.amountPerGuest);
+      discounted = Math.round(discounted * 100) / 100;
+      return '<div class="price-val"><span class="price-old">' + esc(String(currentPrice) + ' €') + '</span> ' + esc(String(discounted) + ' €') + '</div>' +
+        '<div class="price-sub">' + esc(subLabel + ' · mit Code') + '</div>';
+    };
     var priceLabel = (isPromoReward(service.id) && !packageCovered)
       ? '<div class="price-val price-note">🎁 gratis</div>'
       : packageCovered
@@ -4132,12 +4144,12 @@ function renderServiceList() {
       ? '<div class="price-val">' + esc(fmtEur(currentPrice)) + '</div><div class="price-sub">' + esc(ui.upgradeBadge) + '</div>'
       : service.priceType === 'flat'
       ? (Number(currentPrice) > 0
-          ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">Flat</div>'
+          ? (isInlineDisc ? discPriceMarkup('Flat') : '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">Flat</div>')
           : zeroPriceMarkup(service))
       : service.priceType === 'budget'
         ? '<div class="price-val" style="font-size:15px">Budget</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
         : (Number(currentPrice) > 0
-          ? '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>'
+          ? (isInlineDisc ? discPriceMarkup(ui.perGuest) : '<div class="price-val">' + esc(String(currentPrice)) + ' €</div><div class="price-sub">' + esc(ui.perGuest) + '</div>')
           : zeroPriceMarkup(service));
     if (timeSurcharge > 0) {
       priceLabel += '<div class="price-sub">' + esc(serviceTimeSurchargeLabel(service)) + ' Zeitaufschlag</div>';
@@ -4472,6 +4484,7 @@ function updateSummary() {
 
   var selected = selectedServicesInOrder();
   var promoRewards = activeRewardModules();
+  var inlineDisc = couponInlineModuleDiscount(); // {id, amountPerGuest} oder null
   var container = document.getElementById('sum-services');
   var badge = '';
   var pkg = null;
@@ -4515,13 +4528,23 @@ function updateSummary() {
         : service.price;
       var isReward = !!promoRewards[service.id];
       var isFree = isReward || Number(service.price) <= 0;
+      var hasInlineDisc = !isFree && inlineDisc && service.id === inlineDisc.id;
       var freeNote = isReward ? '🎁 gratis · ' + promoRewards[service.id] : servicePriceNote(findService(service.id));
       var label = isFree
         ? freeNote
         : (service.priceType === 'flat' ? fmtEur(service.price) + ' flat' : service.price + ' €' + ui.perGuest);
+      if (hasInlineDisc) label += ' · mit Code ' + (state.discount.code || state.discountCode || '');
       var name = service.name + (service.optionName ? ' - ' + service.optionName : '');
-      var sval = isFree ? (isReward ? 'gratis' : freeNote) : (fmtEur(ppContrib) + ui.perGuest);
-      return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + esc(sval) + '</span></div>' +
+      var svalHtml;
+      if (isFree) {
+        svalHtml = esc(isReward ? 'gratis' : freeNote);
+      } else if (hasInlineDisc) {
+        var discountedPp = Math.max(0, ppContrib - inlineDisc.amountPerGuest);
+        svalHtml = '<span class="disc-strike">' + esc(fmtEur(ppContrib) + ui.perGuest) + '</span>' + esc(fmtEur(discountedPp) + ui.perGuest);
+      } else {
+        svalHtml = esc(fmtEur(ppContrib) + ui.perGuest);
+      }
+      return '<div class="summary-service"><span class="sname">' + esc(name) + '<small>' + esc(label) + '</small></span><span class="sval">' + svalHtml + '</span></div>' +
         (isReward ? '' : timeSurchargeRow(findService(service.id), service.name));
     }).join('');
     if (state.nightSurcharge > 0) {
@@ -4574,8 +4597,12 @@ function updateSummary() {
     }
   }
   if (state.discount && state.discount.amount > 0) {
-    var discountPp = Number(state.discount.amountPerGuest || (state.guests > 0 ? state.discount.amount / state.guests : 0));
-    container.insertAdjacentHTML('beforeend', '<div class="summary-discount"><span>' + esc(state.discount.label || state.discount.code || 'Rabatt') + '</span><span class="sval">-' + esc(moneyPerGuest(discountPp)) + '</span></div>');
+    // Bei einem eindeutig zuordenbaren Ziel-Modul steht der Rabatt schon durchgestrichen am Modul ->
+    // dann KEINE separate Rabatt-Zeile (sonst doppelt). Sammel-/Order-Rabatte weiter als eigene Zeile.
+    if (!inlineDisc) {
+      var discountPp = Number(state.discount.amountPerGuest || (state.guests > 0 ? state.discount.amount / state.guests : 0));
+      container.insertAdjacentHTML('beforeend', '<div class="summary-discount"><span>' + esc(state.discount.label || state.discount.code || 'Rabatt') + '</span><span class="sval">-' + esc(moneyPerGuest(discountPp)) + '</span></div>');
+    }
     total = Math.abs(Number(state.discount.totalBeforeDiscount || 0) - total) <= 0.01
       ? Math.max(0, total - state.discount.amount)
       : Number(state.discount.totalAfterDiscount || total);
@@ -4871,6 +4898,7 @@ function validateDiscountNow(code, input, btn) {
       if (input) input.value = state.discountCode;
       renderDiscountState('', 'success');
       trackConversionEvent('discount_applied', { code: state.discountCode, amount: state.discount.amount || 0 });
+      renderServiceList(); // Modul-Card mit Rabattpreis aktualisieren
       updateSummary();
       return;
     }
@@ -4931,6 +4959,7 @@ function applyRecoveredDiscountCode() {
         if (input) input.value = state.discountCode;
         renderDiscountState('', 'success');
         trackConversionEvent('discount_applied_from_recovery', { code: state.discountCode, amount: state.discount.amount || 0 });
+        renderServiceList(); // Modul-Card mit Rabattpreis aktualisieren
         updateSummary();
         return;
       }
@@ -5175,22 +5204,45 @@ function renderDiscountPreviewBanner() {
   if (p.discountType === 'free_module') {
     var names = (p.freeModuleIds || []).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
     text = names.length ? (names.join(', ') + ' gratis dazu') : 'Gratis-Leistung inklusive';
-  } else if (p.discountType === 'percent') {
-    text = fmtPercent(p.discountValue) + ' Rabatt wird im Angebot berücksichtigt';
-  } else if (p.discountType === 'fixed_per_guest') {
-    text = fmtEur(p.discountValue) + ' /Gast Rabatt im Angebot';
   } else {
-    text = fmtEur(p.discountValue) + ' Rabatt im Angebot';
-  }
-  // Hinweis auf automatisch vorausgewähltes Ziel-Modul/-Paket (bei free_module steht es schon oben).
-  if (p.discountType !== 'free_module') {
-    var targetNames = discountTargetModuleIds(p).map(function(id) { var s = findService(id); return s ? s.name : ''; }).filter(Boolean);
+    var base = p.discountType === 'percent' ? fmtPercent(p.discountValue) + ' Rabatt'
+      : p.discountType === 'fixed_per_guest' ? fmtEur(p.discountValue) + ' /Gast Rabatt'
+      : fmtEur(p.discountValue) + ' Rabatt';
+    // Ziel-Module/-Paket in gewaehlt vs. fehlend (z.B. vom Kunden abgewaehlt) aufteilen.
+    var nameOf = function(id) { var s = findService(id); return s ? s.name : ''; };
+    var ids = discountTargetModuleIds(p);
+    var missingNames = ids.filter(function(id) { return !state.services[id]; }).map(nameOf).filter(Boolean);
+    var selNames = ids.filter(function(id) { return !!state.services[id]; }).map(nameOf).filter(Boolean);
     var tPkgId = discountTargetPackageId(p);
-    if (tPkgId) { var tp = findPackage(tPkgId); if (tp) targetNames.push(tp.name); }
-    if (targetNames.length) text += ' · ' + targetNames.join(', ') + ' vorausgewählt';
+    if (tPkgId) {
+      var tp = findPackage(tPkgId);
+      if (tp) { if (state.selectedPackage === tPkgId) selNames.push(tp.name); else missingNames.push(tp.name); }
+    }
+    if (missingNames.length) {
+      // Ziel fehlt -> nicht mehr "vorausgewählt"/"berücksichtigt" behaupten, sondern zum Hinzufügen auffordern.
+      text = base + ' · füge ' + missingNames.join(', ') + ' hinzu, um zu sparen';
+    } else {
+      text = base + ' wird im Angebot berücksichtigt' + (selNames.length ? ' · ' + selNames.join(', ') + ' vorausgewählt' : '');
+    }
   }
   el.innerHTML = '<span class="sdb-code">🎟️ ' + esc(p.code) + '</span><span class="sdb-text">' + esc(text) + '</span>';
   el.hidden = false;
+}
+
+// Ordnet einen aktiven Euro-Rabatt genau EINEM gewaehlten, nicht paket-gedeckten Ziel-Modul zu
+// (nur bei targetType 'modules' + genau ein Treffer). Dann wird der Rabatt direkt am Modul angezeigt
+// (durchgestrichener Preis) statt als separate Sammelzeile. Sonst null.
+function couponInlineModuleDiscount() {
+  if (!state.discount || !(state.discount.amount > 0)) return null;
+  var p = state.discountPreview;
+  if (!p || p.targetType !== 'modules') return null;
+  var ids = discountTargetModuleIds(p).filter(function(id) {
+    var svc = state.services[id];
+    return svc && !svc.packageCovered;
+  });
+  if (ids.length !== 1) return null;
+  var app = Number(state.discount.amountPerGuest || (state.guests > 0 ? state.discount.amount / state.guests : 0));
+  return { id: ids[0], amountPerGuest: app };
 }
 
 function fmtPercent(value) {
